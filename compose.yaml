@@ -1,0 +1,112 @@
+# Personal AI Workspace — base stack.
+# Always-on: open-webui (upstream, unmodified) + paw-api (BFF that also serves the static web app).
+# Optional profiles: see compose.gpu.yaml, compose.browser.yaml, profiles/*.
+# Image versions are pinned in versions.lock and injected via .env (written by install.sh / manage.sh).
+name: ${COMPOSE_PROJECT_NAME:-paw}
+
+x-hardening: &hardening
+  restart: unless-stopped
+  security_opt:
+    - no-new-privileges:true
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  open-webui:
+    <<: *hardening
+    image: ${OPENWEBUI_IMAGE:?OPENWEBUI_IMAGE missing - run ./install.sh}
+    environment:
+      WEBUI_SECRET_KEY: ${WEBUI_SECRET_KEY:?WEBUI_SECRET_KEY missing - run ./install.sh}
+      WEBUI_URL: ${OPENWEBUI_PUBLIC_URL:-http://localhost:3001}
+      # WEBUI_NAME intentionally not overridden: Open WebUI branding must remain (see THIRD_PARTY_NOTICES.md).
+      ENABLE_SIGNUP: ${ENABLE_SIGNUP:-false}
+      DEFAULT_USER_ROLE: ${DEFAULT_USER_ROLE:-pending}
+      ENABLE_API_KEYS: "true"
+      ENABLE_OLLAMA_API: ${ENABLE_OLLAMA_API:-false}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      ENABLE_OPENAI_API: "true"
+      OPENAI_API_BASE_URLS: ${OPENAI_API_BASE_URLS:-https://api.openai.com/v1}
+      OPENAI_API_KEYS: ${OPENAI_API_KEYS:-}
+      # Do not phone home / no hidden telemetry
+      SCARF_NO_ANALYTICS: "true"
+      DO_NOT_TRACK: "true"
+      ANONYMIZED_TELEMETRY: "false"
+      ENABLE_VERSION_UPDATE_CHECK: "false"
+      # Web search (configure provider in .env; default off until a provider is set)
+      ENABLE_WEB_SEARCH: ${ENABLE_WEB_SEARCH:-false}
+      WEB_SEARCH_ENGINE: ${WEB_SEARCH_ENGINE:-duckduckgo}
+      # Image generation (external API by default; local ComfyUI only via compose.gpu.yaml)
+      ENABLE_IMAGE_GENERATION: ${ENABLE_IMAGE_GENERATION:-false}
+      IMAGE_GENERATION_ENGINE: ${IMAGE_GENERATION_ENGINE:-openai}
+      IMAGES_OPENAI_API_BASE_URL: ${IMAGES_OPENAI_API_BASE_URL:-https://api.openai.com/v1}
+      IMAGES_OPENAI_API_KEY: ${IMAGES_OPENAI_API_KEY:-}
+      IMAGE_GENERATION_MODEL: ${IMAGE_GENERATION_MODEL:-gpt-image-1}
+      # Audio: browser STT/TTS by default (zero server cost); override in .env
+      AUDIO_STT_ENGINE: ${AUDIO_STT_ENGINE:-}
+      AUDIO_TTS_ENGINE: ${AUDIO_TTS_ENGINE:-}
+    volumes:
+      - ${PAW_DATA_DIR:-./data}/open-webui:/app/backend/data
+    # Stock Open WebUI UI (admin console + bootstrap PWA). Localhost-only by default;
+    # reach it remotely through Tailscale Serve, never by opening the port to the internet.
+    ports:
+      - "${OPENWEBUI_BIND_ADDRESS:-127.0.0.1}:${OPENWEBUI_PORT:-3001}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 10
+      start_period: 120s
+    mem_limit: ${OPENWEBUI_MEM_LIMIT:-3g}
+    cpus: ${OPENWEBUI_CPUS:-4}
+    pids_limit: 512
+    networks: [backend]
+
+  paw-api:
+    <<: *hardening
+    image: ${PAW_API_IMAGE:-ghcr.io/personal-ai-workspace/paw-api:local}
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m
+    environment:
+      PAW_OPENWEBUI_URL: http://open-webui:8080
+      PAW_DATA_DIR: /data
+      PAW_PUBLIC_URL: ${PAW_PUBLIC_URL:-http://localhost:3000}
+      PAW_SESSION_SECRET: ${PAW_SESSION_SECRET:?PAW_SESSION_SECRET missing - run ./install.sh}
+      PAW_COOKIE_SECURE: ${PAW_COOKIE_SECURE:-auto}
+      PAW_MAX_UPLOAD_MB: ${PAW_MAX_UPLOAD_MB:-100}
+      PAW_MONTHLY_BUDGET_USD: ${PAW_MONTHLY_BUDGET_USD:-10}
+      PAW_FEATURE_FLAGS: ${PAW_FEATURE_FLAGS:-}
+      PAW_ANDROID_PACKAGE: ${PAW_ANDROID_PACKAGE:-}
+      PAW_ANDROID_CERT_SHA256: ${PAW_ANDROID_CERT_SHA256:-}
+      PAW_TERMINAL_URL: ${PAW_TERMINAL_URL:-}
+      PAW_TERMINAL_API_KEY: ${PAW_TERMINAL_API_KEY:-}
+      PAW_YOUTUBE_ENABLED: ${PAW_YOUTUBE_ENABLED:-true}
+    volumes:
+      - ${PAW_DATA_DIR:-./data}/paw:/data
+    ports:
+      # Bound to localhost by default. Use Tailscale Serve (recommended) or set PAW_BIND_ADDRESS=0.0.0.0 for LAN.
+      - "${PAW_BIND_ADDRESS:-127.0.0.1}:${PAW_PORT:-3000}:8000"
+    depends_on:
+      open-webui:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=4).status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    mem_limit: ${PAW_API_MEM_LIMIT:-768m}
+    cpus: ${PAW_API_CPUS:-2}
+    pids_limit: 256
+    networks: [backend]
+
+networks:
+  backend:
+    driver: bridge

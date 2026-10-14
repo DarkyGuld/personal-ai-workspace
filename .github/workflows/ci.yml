@@ -1,0 +1,46 @@
+name: Personal AI Workspace CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r apps/api/requirements.txt
+        pip install pytest pytest-asyncio
+
+    - name: Run Unit Tests (Artifact generation, Library store)
+      env:
+        PYTHONPATH: .
+      run: |
+        pytest tests/unit -v
+
+    - name: Verify Shell Scripts
+      run: |
+        bash -n install.sh
+        bash -n manage.sh
+
+    - name: Validate Docker Compose Configuration
+      run: |
+        docker compose config -q
+      env:
+        OPENWEBUI_IMAGE: ghcr.io/open-webui/open-webui:v0.12.0
+        WEBUI_SECRET_KEY: test_secret_key_1234567890abcdef1234567890abcdef
+        PAW_SESSION_SECRET: test_session_secret_1234567890abcdef1234567890abcdef

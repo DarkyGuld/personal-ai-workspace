@@ -1,0 +1,59 @@
+# Secrets & local config — NEVER commit
+.env
+.env.*
+!.env.example
+secrets/
+*.keystore
+*.jks
+*.pem
+*.key
+android-signing/
+restic-password*
+
+# Runtime data
+data/
+backups/
+staging/
+*.sqlite
+*.sqlite3
+*.db
+*.db-wal
+*.db-shm
+
+# Spec bundle as delivered
+*.zip
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+.vite/
+
+# Android
+apps/android/build/
+apps/android/app/build/
+apps/android/.gradle/
+apps/android/local.properties
+*.apk
+*.aab
+*.idx
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

@@ -1,0 +1,38 @@
+# Versions Lock — Personal AI Workspace
+
+This file pins production dependencies, base images, upstream components, and adapter contracts.
+Do not edit manually in production; updates are orchestrated via `./manage.sh upgrade` and tested in CI/staging.
+
+## Upstream Core Components
+
+| Component | Pinned Version / Tag | Digest / Release Date | License | Notes |
+|---|---|---|---|---|
+| Open WebUI | `ghcr.io/open-webui/open-webui:v0.12.0` | `2026-10-10` | BSD-3-Clause + Open WebUI Branding Clause | Kept unmodified; upstream API adapter tested |
+| Open Terminal | `openwebui/open-terminal:v0.14.0` | `2026-09-23` | MIT | Sandboxed execution on-demand |
+| OpenUI React Lang | `@openuidev/react-lang@1.0.0` | `2026-10-12` | MIT | Interactive generative UI components |
+| OpenUI React UI | `@openuidev/react-ui@0.18.0` | `2026-10` | MIT | UI building blocks for Generative UI SDK |
+| Bubblewrap CLI | `@bubblewrap/cli@1.27.0` | `2026` | Apache-2.0 | Android TWA packaging |
+| Restic | `restic/restic:0.19.1` | `2026-07-05` | BSD-2-Clause | Encrypted, consistent backup/restore engine |
+
+## Backend / BFF (Python FastAPI)
+
+| Package | Version | License | Role |
+|---|---|---|---|
+| `fastapi` | `0.143.0` | MIT | BFF & API Adapter framework |
+| `uvicorn` | `0.38.0` | BSD-3-Clause | ASGI server |
+| `pydantic` | `2.12.0` | MIT | Data contracts and validation |
+| `httpx` | `0.28.1` | BSD-3-Clause | Async HTTP client for upstream proxying & tool calling |
+| `aiosqlite` | `0.21.0` | MIT | Async SQLite for Library metadata and UI state |
+| `python-docx` | `1.2.0` | MIT | DOCX generation & editing |
+| `openpyxl` | `3.1.5` | MIT | Excel XLSX generation & formulas |
+| `python-pptx` | `1.0.2` | MIT | PowerPoint PPTX generation |
+| `reportlab` | `4.4.10` | BSD-3-Clause | PDF generation |
+| `Pillow` | `11.1.0` | MIT-CMU | Image processing & metadata verification |
+| `pandas` | `2.3.0` | BSD-3-Clause | Data analysis |
+| `youtube-transcript-api` | `1.2.4` | MIT | YouTube caption/transcript extraction |
+
+## Target Environment Specification
+
+- **Target Host OS**: Ubuntu Server 24.04 LTS
+- **Target Hardware**: Lenovo Legion 5 15ARH05H (AMD Ryzen 5 4600H, 16 GB DDR4 RAM, NVIDIA GeForce RTX 2060 6 GB VRAM, 512 GB NVMe SSD)
+- **Deployment Mode**: Docker Compose (no Kubernetes)
