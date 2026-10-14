@@ -131,8 +131,12 @@ case "${CMD}" in
         fi
 
         echo -e "${YELLOW}WARNING: This will restore database and storage state to snapshot '${SNAPSHOT_ID}'.${NC}"
-        echo "Stopping stack..."
-        docker compose stop
+        if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+            echo "Stopping stack..."
+            docker compose stop || true
+        else
+            echo "Docker daemon not running or not in PATH; skipping container stop."
+        fi
 
         if [[ -f "${TARGET_DIR}/openwebui_data.tar.gz" ]]; then
             echo "Restoring Open WebUI data..."

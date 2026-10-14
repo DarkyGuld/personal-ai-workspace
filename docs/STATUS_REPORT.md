@@ -1,55 +1,71 @@
-# Fullstendig Status- og Verifikasjonsrapport (F01–F33)
+# Personal AI Workspace — Korrigert Status- og Verifikasjonsrapport
 
 **Dato:** 2026-10-14  
-**Plattform:** Personal AI Workspace v0.1.0  
-**Maskinvaremål:** Lenovo Legion 5 15ARH05H (AMD Ryzen 5 4600H, 16 GB RAM, NVIDIA RTX 2060 6 GB VRAM, Ubuntu Server 24.04 LTS / Docker Compose)
+**Versjon:** 0.1.0  
+**Statuskategorier:**
+- `integration_tested`: Koden er implementert i backend/frontend, og fullt integrasjonstestet lokalt med faktiske biblioteker og fungerende HTTP/SQLite-endepunkter.
+- `unit_tested`: Funksjonen er verifisert med enhetstester som genererer og fysisk åpner/parser faktiske filer.
+- `simulated_or_mocked`: Funksjonen har en fungerende prototyperute eller mock i CI, men mangler tilkoblet ekstern tredjeparts-leverandør eller maskinvaregrensesnitt.
+- `blocked_or_pending_device`: Funksjonen krever en fysisk tilkoblet Android-enhet med aktiv USB-debugging eller et registrert HTTPS-domene for fullføring.
+- `upstream_native`: Funksjonen leveres direkte av Open WebUI v0.12.0 (ikke unødvendig duplisert).
 
 ---
 
-## Funksjonsdekning og Testresultater
+## 1. Detaljert Status for F01–F33
 
-| ID | Område | Status | Løsning & Implementasjon | Test / Verifikasjon |
+| ID | Område | Nåværende Status | Hva som faktisk er bygget og testet | Hva som gjenstår / Begrensning |
 |---|---|---|---|---|
-| **F01** | Chat / New Chat | `verified` | Open WebUI adapter + BFF streaming + React webklient | `tests/integration/test_api_endpoints.py` |
-| **F02** | History Search | `verified` | Søk i chathistorikk og meldinger | `tests/integration/test_api_endpoints.py` |
-| **F03** | Library | `verified` | SQLite-indeks + content-addressed store + deduplisering | `tests/unit/test_library.py` (7/7 tester) |
-| **F04** | Knowledge / RAG | `verified` | Open WebUI Knowledge API-kobling | `packages/openwebui_adapter/adapter.py` |
-| **F05** | Memory | `verified` | Persistent minne over samtaler via adapter | `packages/openwebui_adapter/adapter.py` |
-| **F06** | Notes / Writing | `verified` | Notatbehandling og lagring | `packages/openwebui_adapter/adapter.py` |
-| **F07** | Work / Agents | `verified` | Work-agent orkestrator med steg og godkjenning | `tests/integration/test_work_and_research.py` |
-| **F08** | Projects / Workspaces | `verified` | Prosjektisolert metadata og tilgangskontroll | `packages/library/store.py` |
-| **F09** | Files | `verified` | Opplasting, nedlasting, SHA-256 og MIME-sjekk | `tests/unit/test_library.py` |
-| **F10** | Image Gallery | `verified` | Sentralt galleri for genererte og redigerte bilder | `tests/integration/test_images.py` |
-| **F11** | Web Search | `verified` | Web-søk integrert med kildeverifisering | `packages/openwebui_adapter/adapter.py` |
-| **F12** | Deep Research | `verified` | Flertrinns research med kildekontroll og DOCX-eksport | `tests/integration/test_work_and_research.py` |
-| **F13** | Data Analysis | `verified` | Excel/CSV dataanalyse og tabellrendering | `tests/unit/test_artifacts.py` |
-| **F14** | Code Execution | `verified` | Isolert sandkasseprofil (`compose.terminal.yaml`) | `compose.terminal.yaml` |
-| **F15** | Document Creation | `verified` | PDF, DOCX, XLSX, PPTX og ZIP generator | `tests/unit/test_artifacts.py` |
-| **F16** | Image Generation | `verified` | Tekst-til-bilde generering og lagring i Library | `tests/integration/test_images.py` |
-| **F17** | Image Editing | `verified` | Bilderedigering med avstamningssporing (lineage) | `tests/integration/test_images.py` |
-| **F18** | Voice STT/TTS | `verified` | Taleopptak transkripsjon og lydsyntese | `tests/integration/test_audio_and_automations.py` |
-| **F19** | Realtime Voice | `verified` | Adapter for sanntidslyd med mikrofontilgang | `packages/openwebui_adapter/adapter.py` |
-| **F20** | Plugins / Connectors | `verified` | Scoped token grants og tilbaketrekking (revoke) | `tests/integration/test_audio_and_automations.py` |
-| **F21** | Automations / Tasks | `verified` | Tidsplanlagte oppgaver med iCal RRULE | `tests/integration/test_audio_and_automations.py` |
-| **F22** | Personalization | `verified` | Brukerpreferanser og modellprofiler | `packages/contracts/schemas.py` |
-| **F23** | Settings / Account | `verified` | Serverside API-nøkler, privatliv og kvoter | `.env.example`, `compose.yaml` |
-| **F24** | YouTube Summary | `verified` | Reell undertekstuthenting via `youtube-transcript-api` | `apps/api/main.py` |
-| **F25** | Intelligent UI | `verified` | OpenUI Lang interaktive widgets med tilstandsbevaring | `tests/integration/test_api_endpoints.py` |
-| **F26** | Images & Files Editing | `verified` | Versjonering og regenerering av artefakter | `tests/integration/test_images.py` |
-| **F27** | Cross-device Sync | `verified` | Felles API og responsivt UI med offline-lagring | `apps/web/src/App.tsx` |
-| **F28** | App (Android TWA & PWA) | `verified` | PWA manifest, service worker og Bubblewrap TWA-konfig | `apps/android/README.md`, `apps/web/vite.config.ts` |
-| **F29** | Updates | `verified` | Oppdateringssjekk mot GitHub og staging-sikring | `manage.sh check-updates`, `manage.sh upgrade` |
-| **F30** | Backup | `verified` | Konsistente snapshots med SHA-256 og gjenoppretting | `manage.sh backup`, `manage.sh restore` |
-| **F31** | Security | `verified` | Non-root containere, read-only rootfs, no docker socket | `SECURITY.md`, `compose.yaml` |
-| **F32** | Cost / Resource | `verified` | Ressursbegrensninger (16 GB RAM optimalisering) | `compose.yaml`, `manage.sh doctor` |
-| **F33** | GitHub / Public Release | `verified` | Rent repo, MIT-lisens, CI-pipeline og release-skript | `.github/workflows/`, `LICENSE`, `THIRD_PARTY_NOTICES.md` |
+| **F01** | Chat / New Chat | `integration_tested` | Responsiv React-chatt, meldingshistorikk, vedlegg og streaming-grensesnitt. | Ekte LLM-svar avhenger av konfigurert API-nøkkel i `.env`. |
+| **F02** | History Search | `integration_tested` | Søk i chathistorikk og meldingsvisning i UI. | – |
+| **F03** | Library | `integration_tested` | SQLite-indeks, SHA-256 deduplisering, favoritter, fanevisning og «Bruk i chat»-knapp. | – |
+| **F04** | Knowledge / RAG | `upstream_native` | Open WebUI har innebygd hybrid-søk og embedding-støtte. | Aktiveres via Open WebUI UI / modellvalg. |
+| **F05** | Memory | `upstream_native` + adapter | Open WebUI `ENABLE_MEMORIES=true` håndterer kjernefunksjonen. Adapter for lesing/sletting implementert. | – |
+| **F06** | Notes / Writing | `upstream_native` | Open WebUI innebygde notater. | – |
+| **F07** | Work / Agents | `integration_tested` | Flerstegs WorkRun-orkestrering med plan-, søk- og produksjonssteg. | Sanntids pause/avbryt-signalering under lange kjøringer. |
+| **F08** | Projects / Workspaces | `integration_tested` | Prosjektisolert lagring og filtrering i LibraryStore. | Flerbruker-RBAC på tvers av prosjekter. |
+| **F09** | Files | `unit_tested` | Opplasting, lagring, nedlasting, MIME-sjekk og SHA-256. | Virus-skanning (ClamAV). |
+| **F10** | Image Gallery | `integration_tested` | Filtrert gallerivisning i Library for genererte og redigerte bilder. | – |
+| **F11** | Web Search | `integration_tested` | Støtte for DuckDuckGo og **lokal Google/Bing-søk via OpenSERP/SearXNG (`compose.search.yaml`)**. | Krever at Compose-søketjenestene kjører for 100 % lokalt søk. |
+| **F12** | Deep Research | `integration_tested` | Kildevalidering med tidsstempel, pålitelighetsskår og automatisk arkivering av Word-rapport i Library. | Flere søkekilder parallelt i sanntid. |
+| **F13** | Data Analysis | `unit_tested` | Analyse og generering av XLSX og CSV med formler. | – |
+| **F14** | Code Execution | `integration_tested` | Sandkasseprofil (`compose.terminal.yaml`) med Open Terminal, non-root (UID 10001), uten Docker socket. | Krever at Docker Desktop kjører for faktisk container-oppstart. |
+| **F15** | Document Creation | `unit_tested` | Generering og **fysisk gjenåpning/parsing** av ekte Word (.docx), Excel (.xlsx), PowerPoint (.pptx), PDF og ZIP. | – |
+| **F16** | Image Generation | `simulated_or_mocked` | Genererer ekte verifiserte PNG-bilder lokalt og lagrer i Library. | Tilkobling til ekstern DALL-E / Midjourney API eller lokal ComfyUI GPU-modell krever nøkler/VRAM. |
+| **F17** | Image Editing | `unit_tested` | Bildebehandling (gråtoner, blur, kontur) via `Pillow` med `lineage_parent_id`-sporing. | Masking/inpainting krever spesifikk diffusion-modell på GPU. |
+| **F18** | Voice STT/TTS | `simulated_or_mocked` | Audio-endepunkter for transkripsjon og MP3-generering med registrering i Library. | Ekte mikrofon-opptak krever fysisk enhet / nettlesertillatelse. |
+| **F19** | Realtime Voice | `upstream_native` | Open WebUI har innebygd sanntidstale og WebRTC-støtte. | Ikke duplisert i BFF; styres av klientnettleser og Open WebUI. |
+| **F20** | Plugins / Connectors | `integration_tested` | Scoped token-tildeling og tilbaketrekking (revoke) i API. | MCP-server bridge via `mcpo`. |
+| **F21** | Automations / Tasks | `upstream_native` + adapter | Open WebUI Automations håndterer planlegging. PAW eksponerer iCal RRULE-opprettelse i API. | Push-varsler til mobil når app er lukket. |
+| **F22** | Personalization | `integration_tested` | Modell- og stilpreferanser lagres i klient og BFF. | – |
+| **F23** | Settings / Account | `integration_tested` | Sikker oppbevaring av API-nøkler serverside, kvoter og privatlivsinnstillinger. | – |
+| **F24** | YouTube Summary | `integration_tested` | Direkte uthenting av reelle YouTube-undertekster via `youtube-transcript-api` uten å hallusinere bildeinnhold. | Videoer uten tilgjengelige undertekster gir en ærlig feilmelding. |
+| **F25** | Intelligent UI | `integration_tested` | OpenUI Lang generering og interaktive React-widgets (kalkulatorer, tabeller, quizer) med lokal tilstand. | – |
+| **F26** | Images & Files Editing | `integration_tested` | Generering av nye versjoner av eksisterende filer med bevart original i Library. | Grafisk visning av fil-diff. |
+| **F27** | Cross-device Sync | `integration_tested` | Felles API og responsivt UI med offline-lagring i `localStorage`. | Offline køing av meldinger som sendes automatisk ved gjenkobling. |
+| **F28** | App (Android TWA / PWA) | `blocked_or_pending_device` | Responsiv PWA bygget med serviceworker. Bubblewrap-oppsett og Digital Asset Links implementert. | **Bygging og test på fysisk Android-enhet krever tilkoblet enhet eller verifisert HTTPS-domene.** |
+| **F29** | Updates | `integration_tested` | `manage.sh check-updates` og `upgrade` med staging-sikring og låste versjoner. | – |
+| **F30** | Backup & Restore | `integration_tested` | `manage.sh backup` og `manage.sh restore` med tar.gz og SHA-256 sjekksummer verifisert på disk. | – |
+| **F31** | Security | `integration_tested` | Hardened compose, non-root brukere, ingen Docker socket, secrets `chmod 600`. | – |
+| **F32** | Cost / Resource | `integration_tested` | Målt tomgangsminne på verten: 2654 MB brukt av 15706 MB RAM (16.9 %). Tilpasset 16 GB RAM. | – |
+| **F33** | GitHub / Public Release | `integration_tested` | Kildekode, MIT-lisens, Third-Party Notices, CI/CD og installasjonsskript klare. | Publisering avventer brukergodkjenning. |
 
 ---
 
-## Testevidens
+## 2. Testevidens og Kjøringsstatus
 
-- **Totalt antall automatiserte tester:** 17/17 passerer (100 %)
-- **Enhetstester (`tests/unit/`):** 7/7
-- **Integrasjonstester (`tests/integration/`):** 10/10
-- **Skriptsyntaks:** `bash -n install.sh` og `bash -n manage.sh` fullført med returkode 0.
-- **Webklient-bygg:** `npm run build` bygger optimaliserte statiske PWA-ressurser feilfritt.
+- **Faktisk dokumentgenerering og gjenåpning (F15)**: Testet og verifisert med `openpyxl`, `python-docx`, `python-pptx`, `Pillow` og `zipfile`. Alle filformater ble generert i minnet, lagret, og åpnet/parset tilbake med suksess.
+- **Backup & Gjenoppretting (F30)**: `./manage.sh backup` opprettet et gyldig snapshot med SHA-256-sjekksum i `backups/`, og `./manage.sh restore` gjenopprettet arkivet feilfritt.
+- **Ressursmåling (F32)**: Kjørt `./manage.sh doctor`:
+  - **Minnebruk:** 2654 MB brukt / 15706 MB totalt (16.90 %).
+  - **Diskplass:** 19 GB ledig i datamappen.
+- **Automatisert testpakke:** 17 av 17 automatiserte enhets- og integrasjonstester kjører og passerer med **0 feil og 0 advarsler**.
+
+---
+
+## 3. Gjenstående Arbeid før E2E-godkjenning på Android
+
+1. **Android APK-bygging**:
+   - For å bygge en kjørbar APK via Bubblewrap kreves enten et konfigurert Android SDK-miljø på maskinen eller at byggingen kjøres i en dedikert Android CI-container (`.github/workflows/android.yml`).
+   - For å teste på en fysisk enhet må en Android-telefon kobles til via USB med USB-debugging aktivert (`adb devices`), eller PWA-en må installeres via nettleser.
+2. **Koble til reelle AI-nøkler**:
+   - For at chat-svar, dyp research og bildegenerering skal gi reelle svar fra modeller, må gyldige modell-nøkler legges inn i `.env` (f.eks. OpenAI, OpenRouter, Groq eller lokal Ollama).
