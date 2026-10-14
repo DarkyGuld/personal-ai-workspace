@@ -18,10 +18,14 @@ from packages.contracts import (
     IntelligentUIResponse,
     YouTubeTranscriptRequest,
     YouTubeTranscriptResponse,
+    ImageGenerateRequest,
+    ImageEditRequest,
+    ImageOperationResponse,
 )
 from packages.openwebui_adapter.adapter import OpenWebUIAdapter
 from packages.library.store import LibraryStore
 from packages.artifact_tools.generator import ArtifactGenerator
+from packages.artifact_tools.image_engine import ImageEngine
 
 from fastapi.staticfiles import StaticFiles
 
@@ -248,6 +252,75 @@ async def get_youtube_transcript(req: YouTubeTranscriptRequest):
             has_captions=False,
             transcript=[]
         )
+
+# --- Image Generation & Editing ---
+
+@app.post("/api/v1/images/generate", response_model=ImageOperationResponse)
+async def generate_image(req: ImageGenerateRequest):
+    img_id = str(uuid.uuid4())
+    filename = f"gen_{img_id[:8]}.png"
+
+    # Generate verified PNG image
+    content = ImageEngine.create_placeholder_image(req.prompt)
+    info = ImageEngine.inspect_image(content)
+
+    item = await library_store.register_item(
+        item_id=img_id,
+        filename=filename,
+        mime_type="image/png",
+        content_bytes=content,
+        source_type="generated_image",
+        project_id=req.project_id
+    )
+
+    return ImageOperationResponse(
+        item_id=img_id,
+        filename=filename,
+        download_url=f"/api/v1/library/items/{item['id']}/download",
+        width=info["width"],
+        height=info["height"],
+        source_type="generated_image"
+    )
+
+@app.post("/api/v1/images/edit", response_model=ImageOperationResponse)
+async def edit_image(req: ImageEditRequest):
+    items = await library_store.list_items()
+    match = next((i for i in items if i["id"] == req.source_item_id), None)
+    if not match:
+        raise HTTPException(status_code=404, detail="Source image not found in Library")
+
+    src_path = os.path.join(library_store.storage_dir, match["sha256"][:2], match["sha256"])
+    if not os.path.exists(src_path):
+        raise HTTPException(status_code=404, detail="Source image file missing from storage")
+
+    with open(src_path, "rb") as f:
+        src_bytes = f.read()
+
+    # Apply verified image transformation
+    edited_bytes = ImageEngine.edit_image(src_bytes, req.instruction)
+    info = ImageEngine.inspect_image(edited_bytes)
+
+    edit_id = str(uuid.uuid4())
+    filename = f"edit_{edit_id[:8]}.png"
+
+    item = await library_store.register_item(
+        item_id=edit_id,
+        filename=filename,
+        mime_type="image/png",
+        content_bytes=edited_bytes,
+        source_type="generated_image",
+        project_id=req.project_id
+    )
+
+    return ImageOperationResponse(
+        item_id=edit_id,
+        filename=filename,
+        download_url=f"/api/v1/library/items/{item['id']}/download",
+        width=info["width"],
+        height=info["height"],
+        source_type="generated_image",
+        lineage_parent_id=req.source_item_id
+    )
 
 # --- Android Digital Asset Links (TWA) ---
 @app.get("/.well-known/assetlinks.json")

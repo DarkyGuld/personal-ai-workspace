@@ -1,0 +1,24 @@
+services:
+  open-terminal:
+    image: ${OPEN_TERMINAL_IMAGE:-openwebui/open-terminal:v0.14.0}
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    # Sandboxing: non-root, read-only root, no docker socket, no host root access
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp:size=512m,exec
+      - /run:size=64m
+    environment:
+      TERMINAL_AUTH_KEY: ${PAW_TERMINAL_API_KEY:?PAW_TERMINAL_API_KEY required for terminal profile}
+      MAX_EXECUTION_TIME_SECONDS: 60
+      MAX_MEMORY_MB: 1024
+      ENABLE_NETWORK: "false"
+    ports:
+      - "127.0.0.1:${TERMINAL_PORT:-8088}:8080"
+    mem_limit: 1024m
+    cpus: 1.5
+    pids_limit: 128
+    networks:
+      - backend

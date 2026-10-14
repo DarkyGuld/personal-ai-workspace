@@ -18,6 +18,11 @@ from .schemas import (
     YouTubeTranscriptRequest,
     YouTubeTranscriptResponse,
 )
+from .image_schemas import (
+    ImageGenerateRequest,
+    ImageEditRequest,
+    ImageOperationResponse,
+)
 
 __all__ = [
     "HealthResponse",

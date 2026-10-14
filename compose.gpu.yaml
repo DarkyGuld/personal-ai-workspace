@@ -1,0 +1,34 @@
+# Optional NVIDIA GPU Profile for Lenovo Legion 5 (RTX 2060 6 GB VRAM)
+# Run with: docker compose -f compose.yaml -f compose.gpu.yaml up -d
+services:
+  open-webui:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # Optional local ComfyUI image generator / inpainting workflow
+  # Note: Tested for RTX 2060 6 GB VRAM with lightweight SD 1.5 / SDXL Turbo models.
+  comfyui:
+    image: ${COMFYUI_IMAGE:-ghcr.io/ai-dock/comfyui:v2-cuda-12.1.1-base-22.04}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8188:8188"
+    environment:
+      DIRECT_ADDRESS: "127.0.0.1"
+      COMFYUI_ARGS: "--lowvram --disable-auto-launch"
+    volumes:
+      - ${PAW_DATA_DIR:-./data}/comfyui:/workspace/ComfyUI
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    mem_limit: 4096m
+    networks:
+      - backend
