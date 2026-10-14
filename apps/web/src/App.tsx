@@ -31,6 +31,7 @@ export const App: React.FC = () => {
   const [libraryItems, setLibraryItems] = useState<LibraryItem[]>([]);
   const [attachedFiles, setAttachedFiles] = useState<LibraryItem[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [autoLibraryRetrieval, setAutoLibraryRetrieval] = useState(false);
 
   // Sync messages and config to local storage
   useEffect(() => {
@@ -215,7 +216,7 @@ export const App: React.FC = () => {
             model: config.model,
             messages: messages.concat(userMsg).map(m => ({ role: m.role, content: m.content })),
             project_id: activeProject?.id,
-            auto_library_retrieval: true
+            auto_library_retrieval: autoLibraryRetrieval
           })
         });
 
@@ -297,6 +298,8 @@ export const App: React.FC = () => {
             appMode={config.appMode}
             activeModel={config.model}
             onOpenSettings={() => setCurrentView('settings')}
+            autoLibraryRetrieval={autoLibraryRetrieval}
+            onToggleAutoLibraryRetrieval={() => setAutoLibraryRetrieval(prev => !prev)}
           />
         )}
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ChatMessage, LibraryItem, Project } from '../types';
 import { IntelligentUIWidget } from './IntelligentUIWidget';
-import { Send, Paperclip, Sparkles, Download, X, Folder } from 'lucide-react';
+import { Send, Paperclip, Sparkles, Download, X, Folder, BookOpen } from 'lucide-react';
 
 interface ChatViewProps {
   messages: ChatMessage[];
@@ -15,6 +15,8 @@ interface ChatViewProps {
   appMode?: 'standalone' | 'server';
   activeModel?: string;
   onOpenSettings?: () => void;
+  autoLibraryRetrieval?: boolean;
+  onToggleAutoLibraryRetrieval?: () => void;
 }
 
 export const ChatView: React.FC<ChatViewProps> = ({
@@ -28,7 +30,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
   onClearActiveProject,
   appMode = 'standalone',
   activeModel = 'deepseek-v4.1-flash',
-  onOpenSettings
+  onOpenSettings,
+  autoLibraryRetrieval = false,
+  onToggleAutoLibraryRetrieval
 }) => {
   const [inputText, setInputText] = useState('');
 
@@ -200,9 +204,24 @@ export const ChatView: React.FC<ChatViewProps> = ({
             <Paperclip className="h-5 w-5" />
           </button>
 
+          {onToggleAutoLibraryRetrieval && (
+            <button
+              type="button"
+              onClick={onToggleAutoLibraryRetrieval}
+              title={autoLibraryRetrieval ? "Automatisk søk i Library er PÅ (klikk for å slå av)" : "Automatisk søk i Library er AV (klikk for å slå på)"}
+              className={`p-2.5 rounded-xl transition-colors ${
+                autoLibraryRetrieval
+                  ? 'bg-emerald-600/30 text-emerald-400 border border-emerald-500/50'
+                  : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700'
+              }`}
+            >
+              <BookOpen className="h-5 w-5" />
+            </button>
+          )}
+
           <input
             type="text"
-            placeholder="Skriv en melding..."
+            placeholder={autoLibraryRetrieval ? "Skriv en melding (søker automatisk i Library)..." : "Skriv en melding..."}
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
