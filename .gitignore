@@ -51,6 +51,7 @@ apps/android/local.properties
 *.apk
 *.aab
 *.idx
+*.idsig
 
 # OS / editor
 .DS_Store

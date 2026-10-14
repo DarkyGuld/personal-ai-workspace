@@ -34,6 +34,11 @@ from packages.contracts import (
     AutomationTaskResponse,
     ConnectorGrantRequest,
     ConnectorGrantResponse,
+    ChatCompletionRequest,
+    ChatCompletionResponse,
+    ChatMessage,
+    ChatChoice,
+    ChatUsage,
 )
 from typing import List
 from packages.openwebui_adapter.adapter import OpenWebUIAdapter
@@ -132,6 +137,50 @@ async def get_models():
         return ModelsResponse(models=cards)
     except Exception:
         return ModelsResponse(models=[ModelCard(id="default-cloud", name="Cloud Model (Configured in Open WebUI)", provider="openai-compatible", capabilities=["chat", "streaming"])])
+
+# --- Chat Completions ---
+
+@app.post("/api/v1/chat/completions", response_model=ChatCompletionResponse)
+async def chat_completions(req: ChatCompletionRequest):
+    messages_payload = [{"role": m.role, "content": m.content} for m in req.messages]
+    raw_res = await owui_adapter.chat_completions(
+        messages=messages_payload,
+        model=req.model,
+        stream=req.stream,
+        session_id=req.session_id
+    )
+
+    choices = []
+    for c in raw_res.get("choices", []):
+        msg = c.get("message", {})
+        choices.append(ChatChoice(
+            index=c.get("index", 0),
+            message=ChatMessage(role=msg.get("role", "assistant"), content=msg.get("content", "")),
+            finish_reason=c.get("finish_reason", "stop")
+        ))
+
+    if not choices:
+        choices = [ChatChoice(
+            index=0,
+            message=ChatMessage(role="assistant", content="Ingen respons mottatt fra modellen."),
+            finish_reason="stop"
+        )]
+
+    usage_data = raw_res.get("usage", {})
+    usage = ChatUsage(
+        prompt_tokens=usage_data.get("prompt_tokens", 0),
+        completion_tokens=usage_data.get("completion_tokens", 0),
+        total_tokens=usage_data.get("total_tokens", 0)
+    )
+
+    return ChatCompletionResponse(
+        id=raw_res.get("id", str(uuid.uuid4())),
+        model=raw_res.get("model", req.model),
+        choices=choices,
+        usage=usage,
+        created=raw_res.get("created", int(time.time()))
+    )
+
 
 # --- Library ---
 
@@ -279,8 +328,9 @@ async def generate_image(req: ImageGenerateRequest):
     img_id = str(uuid.uuid4())
     filename = f"gen_{img_id[:8]}.png"
 
-    # Generate verified PNG image
-    content = ImageEngine.create_placeholder_image(req.prompt)
+    # Attempt generative creation with honest fallback
+    gen_result = await ImageEngine.generate_image_async(req.prompt)
+    content = gen_result["content"]
     info = ImageEngine.inspect_image(content)
 
     item = await library_store.register_item(
@@ -298,7 +348,11 @@ async def generate_image(req: ImageGenerateRequest):
         download_url=f"/api/v1/library/items/{item['id']}/download",
         width=info["width"],
         height=info["height"],
-        source_type="generated_image"
+        source_type="generated_image",
+        is_ai_generated=gen_result["is_ai_generated"],
+        provider=gen_result["provider"],
+        model=gen_result["model"],
+        warning=gen_result["warning"]
     )
 
 @app.post("/api/v1/images/edit", response_model=ImageOperationResponse)
@@ -315,8 +369,9 @@ async def edit_image(req: ImageEditRequest):
     with open(src_path, "rb") as f:
         src_bytes = f.read()
 
-    # Apply verified image transformation
-    edited_bytes = ImageEngine.edit_image(src_bytes, req.instruction)
+    # Apply image transformation with explicit tracking
+    edit_result = ImageEngine.edit_image(src_bytes, req.instruction)
+    edited_bytes = edit_result["content"]
     info = ImageEngine.inspect_image(edited_bytes)
 
     edit_id = str(uuid.uuid4())
@@ -338,7 +393,11 @@ async def edit_image(req: ImageEditRequest):
         width=info["width"],
         height=info["height"],
         source_type="generated_image",
-        lineage_parent_id=req.source_item_id
+        lineage_parent_id=req.source_item_id,
+        is_ai_generated=edit_result["is_ai_generated"],
+        provider=edit_result["provider"],
+        model=edit_result["model"],
+        warning=edit_result["warning"]
     )
 
 # --- Work & Deep Research ---

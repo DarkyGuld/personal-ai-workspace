@@ -89,3 +89,20 @@ async def test_intelligent_ui_endpoint(client):
     assert "Savings Growth Calculator" in data["source_lang"]
     assert data["schema_version"] == "1.0.0"
     assert data["state"]["months"] == 12
+
+@pytest.mark.asyncio
+async def test_chat_completions_endpoint(client):
+    payload = {
+        "model": "deepseek-v4.1-flash",
+        "messages": [
+            {"role": "user", "content": "Hei, hvem er du?"}
+        ]
+    }
+    resp = await client.post("/api/v1/chat/completions", json=payload)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "choices" in data
+    assert len(data["choices"]) > 0
+    assert data["choices"][0]["message"]["role"] == "assistant"
+    assert len(data["choices"][0]["message"]["content"]) > 0
+

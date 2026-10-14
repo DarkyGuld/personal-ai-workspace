@@ -21,3 +21,8 @@ class ImageOperationResponse(BaseModel):
     height: int
     source_type: str
     lineage_parent_id: Optional[str] = None
+    is_ai_generated: bool = False
+    provider: str = "offline_placeholder"
+    model: Optional[str] = None
+    warning: Optional[str] = None
+

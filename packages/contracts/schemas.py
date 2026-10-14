@@ -34,6 +34,14 @@ class ChatMessage(BaseModel):
     content: str
     metadata: Optional[Dict[str, Any]] = None
 
+class ChatCompletionRequest(BaseModel):
+    model: str = "deepseek-v4.1-flash"
+    messages: List[ChatMessage]
+    stream: bool = False
+    temperature: Optional[float] = 0.7
+    session_id: Optional[str] = None
+    project_id: Optional[str] = None
+
 class ChatStreamRequest(BaseModel):
     model: str
     messages: List[ChatMessage]
@@ -41,6 +49,24 @@ class ChatStreamRequest(BaseModel):
     temperature: Optional[float] = 0.7
     project_id: Optional[str] = None
     library_item_ids: Optional[List[str]] = Field(default_factory=list)
+
+class ChatChoice(BaseModel):
+    index: int = 0
+    message: ChatMessage
+    finish_reason: Optional[str] = "stop"
+
+class ChatUsage(BaseModel):
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    total_tokens: int = 0
+
+class ChatCompletionResponse(BaseModel):
+    id: str
+    model: str
+    choices: List[ChatChoice]
+    usage: Optional[ChatUsage] = None
+    created: int
+
 
 # --- Library Contracts ---
 class LibraryItemCreate(BaseModel):
