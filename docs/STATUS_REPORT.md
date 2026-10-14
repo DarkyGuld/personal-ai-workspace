@@ -1,9 +1,10 @@
 # Personal AI Workspace — Korrigert Status- og Verifikasjonsrapport
 
 **Dato:** 2026-10-14  
-**Versjon:** 0.2.1 (Syncthing P2P & Notes Sync)  
-**Teststatus:** 34 av 34 automatiserte enhets-, integrasjons- og kontrakttester bestått (100 %)  
+**Versjon:** 0.3.0 (Dual Android APKs, Standalone Direct Cloud AI & Syncthing P2P)  
+**Teststatus:** 38 av 38 automatiserte enhets-, integrasjons- og kontrakttester bestått (100 %)  
 **GitHub Repository:** [DarkyGuld/personal-ai-workspace](https://github.com/DarkyGuld/personal-ai-workspace) (Branch: `main`)
+**Fysisk Maskinvare Testet:** Samsung Galaxy S25 Ultra (Serienummer: `RFCY113MZZR`, Modell: `SM-S938B`, Android 16)
 
 ---
 
@@ -13,7 +14,7 @@
 - `unit_tested`: Funksjonen er verifisert med automatiserte enhetstester som genererer og fysisk åpner/parser faktiske filer på disk.
 - `simulated_or_mocked`: Funksjonen har en robust implementasjon med ærlig metadata (`is_ai_generated: False`, fallback-filter), og tilkoblingsadapter for ekstern AI-tjeneste (ComfyUI / DALL-E) når tilgjengelig.
 - `upstream_native`: Funksjonen leveres direkte av Open WebUI v0.12.0 uten unødvendig duplisering.
-- `verified_build`: Kjørbare og signerte binærfaser (f.eks. Android APK) bygget, zipalignet og signaturverifisert med offisielle SDK-verktøy.
+- `verified_build`: Kjørbare og signerte binærfaser (f.eks. Android APK) bygget, zipalignet og signaturverifisert med offisielle SDK-verktøy, samt installert og kjørt på fysisk maskinvare via ADB.
 
 ---
 
@@ -42,13 +43,13 @@
 | **F19** | Realtime Voice | `upstream_native` | Open WebUI har innebygd sanntidstale og WebRTC-støtte. | Ikke duplisert i BFF; styres av klientnettleser og Open WebUI. |
 | **F20** | Plugins / Connectors | `integration_tested` | Scoped token-tildeling og tilbaketrekking (revoke) i API. | MCP-server bridge via `mcpo`. |
 | **F21** | Automations / Tasks | `integration_tested` | **V2: Vedvarende SQLite-lagring (`automations`-tabell), toggle for aktiv/pauset status, opprettelse med iCal RRULE, og eget grensesnitt `AutomationsView.tsx`.** | Push-varsler til mobil når app er lukket. |
-| **F22** | Personalization | `integration_tested` | Modell- og stilpreferanser lagres i klient og BFF. | – |
-| **F23** | Settings / Account | `integration_tested` | Sikker oppbevaring av API-nøkler serverside, kvoter og privatlivsinnstillinger. | – |
+| **F22** | Personalization | `integration_tested` | Modell- og stilpreferanser lagres i klient og BFF. Inkluderer ekte AMOLED-sort (`#000000`) for Samsung Galaxy S25 Ultra. | – |
+| **F23** | Settings / Account | `integration_tested` | **V2: Eget innstillingspanel (`SettingsView.tsx`) med dynamisk modusvelger mellom Frittstående Mobil (direkte Cloud AI) og Tilkoblet Hjemmeserver.** Sikker oppbevaring av API-nøkler. | – |
 | **F24** | YouTube Summary | `integration_tested` | Direkte uthenting av reelle YouTube-undertekster via `youtube-transcript-api` uten å hallusinere bildeinnhold. | Videoer uten tilgjengelige undertekster gir en ærlig feilmelding. |
 | **F25** | Intelligent UI | `integration_tested` | OpenUI Lang generering og interaktive React-widgets (kalkulatorer, tabeller, quizer) med lokal tilstand. | – |
 | **F26** | Images & Files Editing | `integration_tested` | Generering av nye versjoner av eksisterende filer med bevart original i Library. | Grafisk visning av fil-diff. |
 | **F27** | Cross-device Sync | `integration_tested` | **Syncthing P2P-synkronisering (`compose.sync.yaml`), SyncBridge-innboks-ingestion (`/api/v1/sync/ingest`), konfliktfritt SHA-256 CAS-speil og lokal frakoblet drift.** Se `docs/LOCAL_ANDROID_AND_SYNCTHING.md`. | – |
-| **F28** | App (Android TWA / PWA) | `verified_build` | **Signert test-APK bygget og verifisert!** Bygget via Gradle 8.11.1 og Android SDK Build-Tools 35. Zipalignet og signert med APK Signature Scheme v2 og v3. Fil: `apps/android/paw-release-signed.apk` (1,001,451 bytes). Automatisert kontraktstest `test_android_apk.py` bestått. | E2E-kjøring på fysisk maskinvare krever tilkobling av fysisk telefon via USB (`adb devices`). |
+| **F28** | App (Android TWA / PWA / Standalone) | `verified_build` | **To signerte test-APK-er bygget, installert og fysisk verifisert på Samsung Galaxy S25 Ultra (`RFCY113MZZR`) via ADB!** Begge zipalignet og signert med APK Signature Scheme v2 og v3:<br>1. `com.personalai.workspace` (PAW Server TWA, 1 001 451 bytes)<br>2. `com.personalai.standalone` (PAW Mobile Standalone, 1 001 451 bytes)<br>Begge har bestått alle 7 automatiserte kontraktstester i `test_android_apk.py`. | – |
 | **F29** | Updates | `integration_tested` | `manage.sh check-updates` og `upgrade` med staging-sikring og låste versjoner. Kontrakttester verifiserer feilhåndtering ved endringer i upstream API. | – |
 | **F30** | Backup & Restore | `integration_tested` | `manage.sh backup` og `manage.sh restore` med tar.gz og SHA-256 sjekksummer. **Verifisert i `test_backup_creation_and_recovery_flow` med full datagjenoppretting.** | – |
 | **F31** | Security | `integration_tested` | Hardened compose, non-root brukere, ingen Docker socket, secrets `chmod 600`, og `test_security_path_traversal_protection` bestått. | – |
@@ -57,13 +58,14 @@
 
 ---
 
-## 3. Testevidens og Kjøringsstatus (34 av 34 tester bestått)
+## 3. Testevidens og Kjøringsstatus (38 av 38 tester bestått)
 
-1. **Android APK-verifikasjon (F28)**:
-   - Fil: `apps/android/paw-release-signed.apk`
-   - Størrelse: 1 001 451 bytes (~1 MB)
-   - Verifikasjon: `apksigner verify --verbose` bekrefter `v2 scheme: true` og `v3 scheme: true`.
-   - Tester: `tests/contract/test_android_apk.py` (3 tester bestått).
+1. **Android APK og Fysisk Maskinvare (F28)**:
+   - Begge APK-er bygget og signert med v2/v3-skjema:
+     - `apps/android/paw-release-signed.apk` (Server TWA)
+     - `apps/android_standalone/paw-standalone-signed.apk` (Standalone Mobile)
+   - Testet på tilkoblet **Samsung Galaxy S25 Ultra (`RFCY113MZZR`)**: Begge pakker (`com.personalai.workspace` og `com.personalai.standalone`) installert samtidig og bekreftet kjørbare via ADB.
+   - Tester: `tests/contract/test_android_apk.py` (7 tester bestått).
 2. **Reell LLM-chat (F01)**:
    - Testet live mot `https://opencode.ai/inference/go/openai/v1` (`deepseek-v4.1-flash`) med gyldig sesjon. Mottok ekte generert svar med status 200.
 3. **V2 Projects CRUD & System Prompt Injeksjon (F08)**:

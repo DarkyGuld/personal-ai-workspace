@@ -12,6 +12,9 @@ interface ChatViewProps {
   isStreaming: boolean;
   activeProject?: Project | null;
   onClearActiveProject?: () => void;
+  appMode?: 'standalone' | 'server';
+  activeModel?: string;
+  onOpenSettings?: () => void;
 }
 
 export const ChatView: React.FC<ChatViewProps> = ({
@@ -22,7 +25,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
   onOpenLibrary,
   isStreaming,
   activeProject,
-  onClearActiveProject
+  onClearActiveProject,
+  appMode = 'standalone',
+  activeModel = 'deepseek-v4.1-flash',
+  onOpenSettings
 }) => {
   const [inputText, setInputText] = useState('');
 
@@ -35,6 +41,28 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
   return (
     <div className="flex-1 flex flex-col h-full bg-slate-900 text-slate-100 overflow-hidden">
+      {/* Top Model & Mode Bar */}
+      <div className="bg-slate-950/90 border-b border-slate-800/80 px-4 py-2 flex items-center justify-between text-xs backdrop-blur-sm">
+        <div className="flex items-center space-x-2">
+          <span className={`inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full font-semibold text-[11px] ${
+            appMode === 'standalone' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/50' : 'bg-indigo-950 text-indigo-300 border border-indigo-800/50'
+          }`}>
+            <span>{appMode === 'standalone' ? '📱 Mobil Direkte API' : '🖥️ Hjemmeserver'}</span>
+          </span>
+          <span className="text-slate-300 font-mono text-[11px] bg-slate-900 px-2 py-0.5 rounded-lg border border-slate-800">
+            ✨ {activeModel}
+          </span>
+        </div>
+        {onOpenSettings && (
+          <button
+            onClick={onOpenSettings}
+            className="text-slate-400 hover:text-white transition text-[11px] font-medium"
+          >
+            Endre modus / modell ⚙️
+          </button>
+        )}
+      </div>
+
       {/* Active Project Banner */}
       {activeProject && (
         <div className="bg-indigo-950/70 border-b border-indigo-800/50 px-4 py-2 flex items-center justify-between text-xs text-indigo-300">
