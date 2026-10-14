@@ -39,8 +39,17 @@ from packages.contracts import (
     ChatMessage,
     ChatChoice,
     ChatUsage,
+    ProjectCreate,
+    ProjectResponse,
+    ProjectListResponse,
+    LibrarySearchRequest,
+    LibrarySearchResult,
+    LibrarySearchResponse,
+    DeepResearchPlanRequest,
+    DeepResearchStep,
+    DeepResearchPlanResponse,
 )
-from typing import List
+from typing import List, Optional
 from packages.openwebui_adapter.adapter import OpenWebUIAdapter
 from packages.library.store import LibraryStore
 from packages.artifact_tools.generator import ArtifactGenerator
@@ -142,7 +151,27 @@ async def get_models():
 
 @app.post("/api/v1/chat/completions", response_model=ChatCompletionResponse)
 async def chat_completions(req: ChatCompletionRequest):
-    messages_payload = [{"role": m.role, "content": m.content} for m in req.messages]
+    extra_system_parts = []
+    if req.project_id:
+        proj = await library_store.get_project(req.project_id)
+        if proj and proj.get("system_prompt"):
+            extra_system_parts.append(f"Project context ({proj['name']}): {proj['system_prompt']}")
+
+    if req.auto_library_retrieval:
+        last_user_msg = next((m.content for m in reversed(req.messages) if m.role == "user"), "")
+        if last_user_msg:
+            lib_hits = await library_store.search_library(query=last_user_msg, project_id=req.project_id, limit=3)
+            if lib_hits:
+                snippets = [f"- {h['filename']} ({h['mime_type']}): {h['snippet']}" for h in lib_hits]
+                extra_system_parts.append("Relevant documents from user Library:\n" + "\n".join(snippets))
+
+    messages_payload = []
+    if extra_system_parts:
+        messages_payload.append({"role": "system", "content": "\n\n".join(extra_system_parts)})
+
+    for m in req.messages:
+        messages_payload.append({"role": m.role, "content": m.content})
+
     raw_res = await owui_adapter.chat_completions(
         messages=messages_payload,
         model=req.model,
@@ -227,6 +256,55 @@ async def download_library_item(item_id: str):
     with open(target_path, "rb") as f:
         data = f.read()
     return Response(content=data, media_type=match["mime_type"], headers={"Content-Disposition": f'attachment; filename="{match["filename"]}"'})
+
+# --- Automatic Library Retrieval / Semantic Search (V2) ---
+
+@app.post("/api/v1/library/search", response_model=LibrarySearchResponse)
+async def search_library_items(req: LibrarySearchRequest):
+    hits = await library_store.search_library(
+        query=req.query,
+        project_id=req.project_id,
+        limit=req.limit,
+        only_favorites=req.only_favorites
+    )
+    results = [LibrarySearchResult(**h) for h in hits]
+    return LibrarySearchResponse(
+        query=req.query,
+        results=results,
+        total=len(results)
+    )
+
+# --- Projects / Workspace (V2) ---
+
+@app.get("/api/v1/projects", response_model=ProjectListResponse)
+async def list_projects():
+    projs = await library_store.list_projects()
+    responses = [ProjectResponse(**p) for p in projs]
+    return ProjectListResponse(projects=responses, total=len(responses))
+
+@app.post("/api/v1/projects", response_model=ProjectResponse)
+async def create_project(req: ProjectCreate):
+    proj_id = str(uuid.uuid4())
+    proj = await library_store.create_project(
+        project_id=proj_id,
+        name=req.name,
+        description=req.description or "",
+        icon=req.icon or "folder",
+        system_prompt=req.system_prompt or ""
+    )
+    return ProjectResponse(**proj)
+
+@app.get("/api/v1/projects/{project_id}", response_model=ProjectResponse)
+async def get_project(project_id: str):
+    proj = await library_store.get_project(project_id)
+    if not proj:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return ProjectResponse(**proj)
+
+@app.delete("/api/v1/projects/{project_id}")
+async def delete_project(project_id: str):
+    await library_store.delete_project(project_id)
+    return {"status": "deleted", "id": project_id}
 
 # --- Artifact & Document Creation ---
 
@@ -419,6 +497,47 @@ async def create_work_run(req: WorkRunCreate):
         output_refs=[]
     )
 
+# --- Deep Research Planning (V2) ---
+
+@app.post("/api/v1/research/plan", response_model=DeepResearchPlanResponse)
+async def plan_deep_research(req: DeepResearchPlanRequest):
+    plan_id = str(uuid.uuid4())
+    focus = req.focus_areas or ["Bakgrunn og kjernebegreper", "Teknisk arkitektur og implementasjon", "Sammenligning og verifisering"]
+
+    steps = [
+        DeepResearchStep(
+            step_number=1,
+            objective=f"Undersøke primærkilder og kartlegge landskapet for '{req.query}'",
+            search_queries=[req.query, f"{req.query} official documentation", f"{req.query} architecture"],
+            expected_findings="Oversikt over kjerneteknologier, offisielle spesifikasjoner og API-kontrakter."
+        ),
+        DeepResearchStep(
+            step_number=2,
+            objective=f"Verifisere tekniske krav og fokusområder: {', '.join(focus[:2])}",
+            search_queries=[f"{req.query} {f}" for f in focus[:2]],
+            expected_findings="Spesifikke kildehenvisninger og tekniske bevis for de prioriterte fokusområdene."
+        ),
+        DeepResearchStep(
+            step_number=3,
+            objective="Sammenligne uavhengige kilder og avstemme eventuelle uenigheter eller begrensninger",
+            search_queries=[f"{req.query} benchmark comparison", f"{req.query} limitations"],
+            expected_findings="Kritisk vurdering av begrensninger, ytelse og uavhengige tredjepartsmålinger."
+        ),
+        DeepResearchStep(
+            step_number=4,
+            objective="Syntetisere sluttrapport med kildehenvisninger og arkivere i Library",
+            search_queries=[],
+            expected_findings="Strukturert rapport (DOCX/Markdown) med klikkbare kilder og verifiserte data."
+        )
+    ]
+
+    return DeepResearchPlanResponse(
+        plan_id=plan_id,
+        query=req.query,
+        suggested_steps=steps,
+        estimated_sources=len(steps) * 3
+    )
+
 @app.post("/api/v1/research/deep", response_model=DeepResearchReport)
 async def perform_deep_research(query: str = Query(..., description="Research query")):
     now = int(time.time())
@@ -490,28 +609,54 @@ async def synthesize_speech(req: AudioSpeechRequest):
         download_url=f"/api/v1/library/items/{item['id']}/download"
     )
 
-# --- Automations & Tasks ---
+# --- Automations & Tasks (V2 - Persistent SQLite) ---
 
-_MEMORY_AUTOMATIONS = []
-
+@app.get("/api/v1/automations", response_model=List[AutomationTaskResponse])
 @app.get("/api/v1/automations/list", response_model=List[AutomationTaskResponse])
-async def list_automations():
-    return _MEMORY_AUTOMATIONS
+async def list_automations(project_id: Optional[str] = Query(None)):
+    items = await library_store.list_persistent_automations(project_id=project_id)
+    return [
+        AutomationTaskResponse(
+            id=i["id"],
+            name=i["name"],
+            prompt=i["prompt"],
+            rrule=i["rrule"],
+            is_active=bool(i["is_active"]),
+            created_at=i["created_at"],
+            next_run_at=i["next_run_at"]
+        )
+        for i in items
+    ]
 
 @app.post("/api/v1/automations/create", response_model=AutomationTaskResponse)
 async def create_automation(req: AutomationCreateRequest):
-    now = int(time.time())
-    task = AutomationTaskResponse(
-        id=str(uuid.uuid4()),
+    auto_id = str(uuid.uuid4())
+    item = await library_store.create_persistent_automation(
+        auto_id=auto_id,
         name=req.name,
         prompt=req.prompt,
         rrule=req.rrule,
-        is_active=req.is_active,
-        created_at=now,
-        next_run_at=now + 86400
+        project_id=None
     )
-    _MEMORY_AUTOMATIONS.append(task)
-    return task
+    return AutomationTaskResponse(
+        id=item["id"],
+        name=item["name"],
+        prompt=item["prompt"],
+        rrule=item["rrule"],
+        is_active=bool(item["is_active"]),
+        created_at=item["created_at"],
+        next_run_at=item["next_run_at"]
+    )
+
+@app.post("/api/v1/automations/{auto_id}/toggle")
+async def toggle_automation(auto_id: str, is_active: bool = Query(...)):
+    await library_store.toggle_automation_status(auto_id, is_active)
+    return {"id": auto_id, "is_active": is_active}
+
+@app.delete("/api/v1/automations/{auto_id}")
+async def delete_automation(auto_id: str):
+    await library_store.delete_automation(auto_id)
+    return {"id": auto_id, "status": "deleted"}
 
 # --- Connectors & Integrations ---
 

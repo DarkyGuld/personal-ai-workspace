@@ -41,6 +41,7 @@ class ChatCompletionRequest(BaseModel):
     temperature: Optional[float] = 0.7
     session_id: Optional[str] = None
     project_id: Optional[str] = None
+    auto_library_retrieval: Optional[bool] = False
 
 class ChatStreamRequest(BaseModel):
     model: str
@@ -93,6 +94,68 @@ class LibraryItemResponse(BaseModel):
 class LibraryListResponse(BaseModel):
     items: List[LibraryItemResponse]
     total: int
+
+# --- Projects / Workspaces (V2) ---
+class ProjectCreate(BaseModel):
+    name: str
+    description: Optional[str] = ""
+    icon: Optional[str] = "folder"
+    system_prompt: Optional[str] = ""
+
+class ProjectResponse(BaseModel):
+    id: str
+    name: str
+    description: str
+    icon: str
+    system_prompt: str
+    created_at: int
+    updated_at: int
+    file_count: int = 0
+    chat_count: int = 0
+
+class ProjectListResponse(BaseModel):
+    projects: List[ProjectResponse]
+    total: int
+
+# --- Automatic Library Retrieval (V2) ---
+class LibrarySearchRequest(BaseModel):
+    query: str
+    project_id: Optional[str] = None
+    limit: int = 5
+    only_favorites: bool = False
+
+class LibrarySearchResult(BaseModel):
+    item_id: str
+    filename: str
+    mime_type: str
+    snippet: str
+    score: float
+    is_favorite: bool
+    download_url: str
+
+class LibrarySearchResponse(BaseModel):
+    query: str
+    results: List[LibrarySearchResult]
+    total: int
+
+# --- Interactive Deep Research Planning (V2) ---
+class DeepResearchPlanRequest(BaseModel):
+    query: str
+    project_id: Optional[str] = None
+    focus_areas: Optional[List[str]] = Field(default_factory=list)
+
+class DeepResearchStep(BaseModel):
+    step_number: int
+    objective: str
+    search_queries: List[str]
+    expected_findings: str
+
+class DeepResearchPlanResponse(BaseModel):
+    plan_id: str
+    query: str
+    suggested_steps: List[DeepResearchStep]
+    estimated_sources: int
+
 
 # --- Artifact & Document Generation ---
 class ArtifactGenerateRequest(BaseModel):

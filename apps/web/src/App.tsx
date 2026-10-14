@@ -2,10 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { ChatView } from './components/ChatView';
 import { LibraryView } from './components/LibraryView';
-import { ChatMessage, LibraryItem } from './types';
+import { ProjectsView } from './components/ProjectsView';
+import { AutomationsView } from './components/AutomationsView';
+import { ResearchView } from './components/ResearchView';
+import { ChatMessage, LibraryItem, Project } from './types';
 
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState('chat');
+  const [activeProject, setActiveProject] = useState<Project | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     const saved = localStorage.getItem('paw_messages');
     return saved ? JSON.parse(saved) : [];
@@ -54,14 +58,15 @@ export const App: React.FC = () => {
     setAttachedFiles([]);
     setIsStreaming(true);
 
-    // Check if user specifically requested a calculator / generative UI
     const lower = text.toLowerCase();
+
+    // Check if user specifically requested a calculator / generative UI
     if (lower.includes('kalkulator') || lower.includes('calculator') || lower.includes('beregn')) {
       setTimeout(() => {
         const assistantMsg: ChatMessage = {
           id: `asst-${Date.now()}`,
           role: 'assistant',
-          content: 'Her er den interaktive sparekalkulatoren. Du kan justere varigheten med slideren nedenfor for å se oppdatert avkastning:',
+          content: 'Her er den interaktive kalkulatoren. Du kan justere parametrene direkte i grensesnittet:',
           uiArtifact: {
             type: 'calculator',
             props: {
@@ -89,6 +94,7 @@ export const App: React.FC = () => {
           body: JSON.stringify({
             kind: isExcel ? 'xlsx' : 'pdf',
             title: isExcel ? 'Prosjektbudsjett 2026' : 'Prosjektsammendrag',
+            project_id: activeProject?.id,
             data: isExcel ? {
               headers: ['Aktivitet', 'Estimert Kostnad (NOK)', 'Status'],
               rows: [
@@ -127,7 +133,37 @@ export const App: React.FC = () => {
       }
     }
 
-    // Default conversational response
+    // Live LLM Chat Completion with auto library retrieval & project context
+    try {
+      const chatRes = await fetch('/api/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'deepseek-v4.1-flash',
+          messages: messages.concat(userMsg).map(m => ({ role: m.role, content: m.content })),
+          project_id: activeProject?.id,
+          auto_library_retrieval: true
+        })
+      });
+
+      if (chatRes.ok) {
+        const chatData = await chatRes.json();
+        const content = chatData.choices?.[0]?.message?.content || 'Ingen respons mottatt.';
+        const assistantMsg: ChatMessage = {
+          id: `asst-${Date.now()}`,
+          role: 'assistant',
+          content,
+          timestamp: Date.now()
+        };
+        setMessages(prev => [...prev, assistantMsg]);
+        setIsStreaming(false);
+        return;
+      }
+    } catch (e) {
+      console.warn('Real LLM completion fallback to local responder', e);
+    }
+
+    // Default conversational response fallback
     setTimeout(() => {
       const assistantMsg: ChatMessage = {
         id: `asst-${Date.now()}`,
@@ -179,6 +215,8 @@ export const App: React.FC = () => {
             onRemoveAttachment={(id) => setAttachedFiles(prev => prev.filter(f => f.id !== id))}
             onOpenLibrary={() => setCurrentView('library')}
             isStreaming={isStreaming}
+            activeProject={activeProject}
+            onClearActiveProject={() => setActiveProject(null)}
           />
         )}
 
@@ -190,7 +228,24 @@ export const App: React.FC = () => {
           />
         )}
 
-        {currentView !== 'chat' && currentView !== 'library' && (
+        {currentView === 'projects' && (
+          <ProjectsView
+            onSelectProjectForChat={(proj) => {
+              setActiveProject(proj);
+              setCurrentView('chat');
+            }}
+          />
+        )}
+
+        {currentView === 'automations' && (
+          <AutomationsView />
+        )}
+
+        {currentView === 'research' && (
+          <ResearchView />
+        )}
+
+        {currentView !== 'chat' && currentView !== 'library' && currentView !== 'projects' && currentView !== 'automations' && currentView !== 'research' && (
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-400">
             <h3 className="text-xl font-bold text-white mb-2 uppercase tracking-wide">{currentView}</h3>
             <p className="text-sm max-w-md">

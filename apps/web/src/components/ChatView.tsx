@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { ChatMessage, LibraryItem } from '../types';
+import { ChatMessage, LibraryItem, Project } from '../types';
 import { IntelligentUIWidget } from './IntelligentUIWidget';
-import { Send, Paperclip, Sparkles, Download, X } from 'lucide-react';
+import { Send, Paperclip, Sparkles, Download, X, Folder } from 'lucide-react';
 
 interface ChatViewProps {
   messages: ChatMessage[];
@@ -10,6 +10,8 @@ interface ChatViewProps {
   onRemoveAttachment: (id: string) => void;
   onOpenLibrary: () => void;
   isStreaming: boolean;
+  activeProject?: Project | null;
+  onClearActiveProject?: () => void;
 }
 
 export const ChatView: React.FC<ChatViewProps> = ({
@@ -18,7 +20,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
   attachedFiles,
   onRemoveAttachment,
   onOpenLibrary,
-  isStreaming
+  isStreaming,
+  activeProject,
+  onClearActiveProject
 }) => {
   const [inputText, setInputText] = useState('');
 
@@ -31,6 +35,30 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
   return (
     <div className="flex-1 flex flex-col h-full bg-slate-900 text-slate-100 overflow-hidden">
+      {/* Active Project Banner */}
+      {activeProject && (
+        <div className="bg-indigo-950/70 border-b border-indigo-800/50 px-4 py-2 flex items-center justify-between text-xs text-indigo-300">
+          <div className="flex items-center space-x-2">
+            <Folder className="h-4 w-4 text-indigo-400" />
+            <span className="font-semibold text-white">Aktivt Prosjekt:</span>
+            <span className="font-medium">{activeProject.name}</span>
+            {activeProject.system_prompt && (
+              <span className="text-[10px] text-indigo-400/80 bg-indigo-900/60 px-2 py-0.5 rounded-full">
+                Instruks aktivert
+              </span>
+            )}
+          </div>
+          {onClearActiveProject && (
+            <button
+              onClick={onClearActiveProject}
+              className="hover:text-white p-1 rounded hover:bg-indigo-900/60 transition"
+              title="Avslutt prosjektmodus"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      )}
       {/* Messages Scroll Area */}
       <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
         {messages.length === 0 ? (

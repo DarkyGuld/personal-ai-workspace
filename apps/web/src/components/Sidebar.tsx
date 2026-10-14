@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import {
   MessageSquare,
-  Search,
   FolderOpen,
+  Folder,
+  Compass,
+  Clock,
   BookOpen,
   Brain,
   FileEdit,
   Briefcase,
-  CheckSquare,
   Image,
   Settings,
   Menu,
@@ -30,13 +31,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const navItems = [
     { id: 'chat', label: 'Chat', icon: MessageSquare },
-    { id: 'search', label: 'Search', icon: Search },
+    { id: 'projects', label: 'Projects', icon: Folder },
+    { id: 'research', label: 'Deep Research', icon: Compass },
     { id: 'library', label: 'Library', icon: FolderOpen },
+    { id: 'automations', label: 'Automations', icon: Clock },
     { id: 'knowledge', label: 'Knowledge', icon: BookOpen },
     { id: 'memory', label: 'Memory', icon: Brain },
     { id: 'notes', label: 'Notes', icon: FileEdit },
     { id: 'work', label: 'Work', icon: Briefcase },
-    { id: 'tasks', label: 'Tasks', icon: CheckSquare },
     { id: 'images', label: 'Images', icon: Image },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];

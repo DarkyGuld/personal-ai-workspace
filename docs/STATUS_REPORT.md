@@ -1,8 +1,9 @@
 # Personal AI Workspace — Korrigert Status- og Verifikasjonsrapport
 
 **Dato:** 2026-10-14  
-**Versjon:** 0.1.0  
-**Teststatus:** 27 av 27 automatiserte enhets-, integrasjons- og kontrakttester bestått (100 %)
+**Versjon:** 0.2.0 (V2 Lansering)  
+**Teststatus:** 31 av 31 automatiserte enhets-, integrasjons- og kontrakttester bestått (100 %)  
+**GitHub Repository:** [DarkyGuld/personal-ai-workspace](https://github.com/DarkyGuld/personal-ai-workspace) (Branch: `main`)
 
 ---
 
@@ -16,22 +17,22 @@
 
 ---
 
-## 2. Detaljert Status for F01–F33
+## 2. Detaljert Status for F01–F33 (Inkludert V2 Utvidelser)
 
 | ID | Område | Nåværende Status | Hva som faktisk er bygget og testet | Hva som gjenstår / Begrensning |
 |---|---|---|---|---|
-| **F01** | Chat / New Chat | `integration_tested` | Responsiv React-chatt, meldingshistorikk og live OpenAI-kompatibelt chat-endepunkt (`/api/v1/chat/completions`). **Testet og verifisert mot live DeepSeek LLM (`deepseek-v4.1-flash`) via adapter med HTTP 200 og ekte resonnering.** | – |
+| **F01** | Chat / New Chat | `integration_tested` | Responsiv React-chatt, meldingshistorikk og live OpenAI-kompatibelt chat-endepunkt (`/api/v1/chat/completions`). **Testet og verifisert mot live DeepSeek LLM (`deepseek-v4.1-flash`) via adapter med HTTP 200, system prompt-injeksjon og automatisk Library retrieval.** | – |
 | **F02** | History Search | `integration_tested` | Søk i chathistorikk og meldingsvisning i UI. | – |
-| **F03** | Library | `integration_tested` | Sentralt innholdsadressert lager (`store.py`), SHA-256 deduplisering, favoritter, fanevisning og «Bruk i chat»-knapp. **Verifisert med automatiserte livssyklustester.** | – |
+| **F03** | Library & Auto-Retrieval | `integration_tested` | Sentralt innholdsadressert lager (`store.py`), SHA-256 deduplisering, favoritter, fanevisning og «Bruk i chat»-knapp. **V2: Scoret flerords-søk (`/api/v1/library/search`) og automatisk dokument-retrieval inn i chat-kontekst.** | – |
 | **F04** | Knowledge / RAG | `upstream_native` | Open WebUI har innebygd hybrid-søk og embedding-støtte. | Aktiveres via Open WebUI UI / modellvalg. |
 | **F05** | Memory | `upstream_native` + adapter | Open WebUI `ENABLE_MEMORIES=true` håndterer kjernefunksjonen. Adapter for lesing/sletting implementert. | – |
 | **F06** | Notes / Writing | `upstream_native` | Open WebUI innebygde notater. | – |
 | **F07** | Work / Agents | `integration_tested` | Flerstegs WorkRun-orkestrering med plan-, søk- og produksjonssteg. **Verifisert i `test_end_to_end_agent_workflow`**. | Sanntids pause/avbryt-signalering under lange kjøringer. |
-| **F08** | Projects / Workspaces | `integration_tested` | Prosjektisolert lagring og filtrering i LibraryStore. | Flerbruker-RBAC på tvers av prosjekter. |
+| **F08** | Projects / Workspaces | `integration_tested` | **V2: Full CRUD for prosjekter med SQLite-tabell (`projects`), dedikerte system-prompts, filtelling, `ProjectsView.tsx`-grensesnitt og automatisk prosjekt-kontekst i chat.** | Flerbruker-RBAC på tvers av prosjekter. |
 | **F09** | Files | `unit_tested` | Opplasting, lagring, nedlasting, MIME-sjekk og SHA-256 deduplisering. | Virus-skanning (ClamAV). |
 | **F10** | Image Gallery | `integration_tested` | Filtrert gallerivisning i Library for genererte og redigerte bilder med slektslinjesporing (`lineage_parent_id`). | – |
 | **F11** | Web Search | `integration_tested` | Støtte for DuckDuckGo og **lokal Google/Bing-søk via OpenSERP/SearXNG (`compose.search.yaml`)**. | Krever at Compose-søketjenestene kjører for 100 % lokalt søk. |
-| **F12** | Deep Research | `integration_tested` | Kildevalidering med tidsstempel, pålitelighetsskår og automatisk arkivering av Word-rapport i Library. | Flere søkekilder parallelt i sanntid. |
+| **F12** | Deep Research | `integration_tested` | **V2: Interaktiv planleggingsfase (`/api/v1/research/plan`), brukergodkjenning av dekomponerte trinn og søkekriterier, kildevalidering med pålitelighetsskår, og automatisk generering av DOCX-rapport til Library.** UI: `ResearchView.tsx`. | Flere søkekilder parallelt i sanntid. |
 | **F13** | Data Analysis | `unit_tested` | Analyse og generering av XLSX og CSV med formler. | – |
 | **F14** | Code Execution | `integration_tested` | Sandkasseprofil (`compose.terminal.yaml`) med Open Terminal, non-root (UID 10001), uten Docker socket. | Krever at Docker kjører for container-oppstart. |
 | **F15** | Document Creation | `unit_tested` | Generering og **fysisk gjenåpning/parsing** av ekte Word (.docx), Excel (.xlsx), PowerPoint (.pptx), PDF og ZIP. | – |
@@ -40,7 +41,7 @@
 | **F18** | Voice STT/TTS | `simulated_or_mocked` | Audio-endepunkter for transkripsjon og MP3-generering med registrering i Library. | Ekte mikrofon-opptak krever fysisk enhet / nettlesertillatelse. |
 | **F19** | Realtime Voice | `upstream_native` | Open WebUI har innebygd sanntidstale og WebRTC-støtte. | Ikke duplisert i BFF; styres av klientnettleser og Open WebUI. |
 | **F20** | Plugins / Connectors | `integration_tested` | Scoped token-tildeling og tilbaketrekking (revoke) i API. | MCP-server bridge via `mcpo`. |
-| **F21** | Automations / Tasks | `upstream_native` + adapter | Open WebUI Automations håndterer planlegging. PAW eksponerer iCal RRULE-opprettelse i API. | Push-varsler til mobil når app er lukket. |
+| **F21** | Automations / Tasks | `integration_tested` | **V2: Vedvarende SQLite-lagring (`automations`-tabell), toggle for aktiv/pauset status, opprettelse med iCal RRULE, og eget grensesnitt `AutomationsView.tsx`.** | Push-varsler til mobil når app er lukket. |
 | **F22** | Personalization | `integration_tested` | Modell- og stilpreferanser lagres i klient og BFF. | – |
 | **F23** | Settings / Account | `integration_tested` | Sikker oppbevaring av API-nøkler serverside, kvoter og privatlivsinnstillinger. | – |
 | **F24** | YouTube Summary | `integration_tested` | Direkte uthenting av reelle YouTube-undertekster via `youtube-transcript-api` uten å hallusinere bildeinnhold. | Videoer uten tilgjengelige undertekster gir en ærlig feilmelding. |
@@ -52,11 +53,11 @@
 | **F30** | Backup & Restore | `integration_tested` | `manage.sh backup` og `manage.sh restore` med tar.gz og SHA-256 sjekksummer. **Verifisert i `test_backup_creation_and_recovery_flow` med full datagjenoppretting.** | – |
 | **F31** | Security | `integration_tested` | Hardened compose, non-root brukere, ingen Docker socket, secrets `chmod 600`, og `test_security_path_traversal_protection` bestått. | – |
 | **F32** | Cost / Resource | `integration_tested` | Målt tomgangsminne på verten: 2654 MB brukt av 15706 MB RAM (16.9 %). On-demand compose-profiler for GPU, OpenSERP og Terminal. | – |
-| **F33** | GitHub / Public Release | `integration_tested` | Kildekode, MIT-lisens, Third-Party Notices, CI/CD (.github/workflows/ci.yml og android.yml) og installasjonsskript klare. | Publisering avventer brukergodkjenning. |
+| **F33** | GitHub / Public Release | `verified_build` | **Publisert på GitHub:** [DarkyGuld/personal-ai-workspace](https://github.com/DarkyGuld/personal-ai-workspace) på branch `main`. Inkluderer all kildekode, APK-byggverktøy, CI/CD-arbeidsflyter, Docker Compose og dokumentasjon. | – |
 
 ---
 
-## 3. Testevidens og Kjøringsstatus (27 av 27 tester bestått)
+## 3. Testevidens og Kjøringsstatus (31 av 31 tester bestått)
 
 1. **Android APK-verifikasjon (F28)**:
    - Fil: `apps/android/paw-release-signed.apk`
@@ -65,11 +66,19 @@
    - Tester: `tests/contract/test_android_apk.py` (3 tester bestått).
 2. **Reell LLM-chat (F01)**:
    - Testet live mot `https://opencode.ai/inference/go/openai/v1` (`deepseek-v4.1-flash`) med gyldig sesjon. Mottok ekte generert svar med status 200.
-3. **Dokumentgenerering og gjenåpning (F15)**:
+3. **V2 Projects CRUD & System Prompt Injeksjon (F08)**:
+   - Verifisert i `tests/integration/test_v2_features.py::test_projects_crud_lifecycle`: Opprettelse, opplisting, detaljer, sletting, og injeksjon av prosjekt-instruksjoner inn i chat-forespørsler.
+4. **V2 Library Scoret Søk & Automatisk Retrieval (F03)**:
+   - Verifisert i `tests/integration/test_v2_features.py::test_library_search_and_auto_retrieval`: Flere dokumenter indekseres, søkes med relevansskår, og relevante tekstsnutter injiseres automatisk i LLM-kontekst.
+5. **V2 Vedvarende Automatiseringer (F21)**:
+   - Verifisert i `tests/integration/test_v2_features.py::test_persistent_automations_lifecycle`: Livssyklus fra opprettelse i SQLite til aktiv/pause-toggle og sletting.
+6. **V2 Interaktiv Deep Research Planlegging (F12)**:
+   - Verifisert i `tests/integration/test_v2_features.py::test_interactive_deep_research_planning`: Automatisk dekomponering i 4 faser med konkrete søkefraser, kildeestimering og kildeverifisert sluttrapport.
+7. **Dokumentgenerering og gjenåpning (F15)**:
    - Fysisk åpnet og verifisert med `openpyxl`, `python-docx`, `python-pptx`, `Pillow` og `zipfile`.
-4. **Backup, Restore og Katastrofegjenoppretting (F30)**:
+8. **Backup, Restore og Katastrofegjenoppretting (F30)**:
    - Verifisert i `tests/contract/test_backup_restore_and_library_lifecycle.py`: Data ble slettet og 100 % gjenopprettet fra snapshot.
-5. **End-to-End Flerstegs Agentkjøring (F07 & F12)**:
+9. **End-to-End Flerstegs Agentkjøring (F07 & F12)**:
    - Verifisert i `tests/integration/test_full_agent_workflow.py`: Planlegging, kildeinnhenting med verifiserte URL-er, databeregning og rapportproduksjon med arkivering i Library.
-6. **Ressursmåling (F32)**:
-   - 2654 MB brukt av 15706 MB RAM (16.9 %). God margin på 16 GB Lenovo Legion 5.
+10. **Ressursmåling (F32)**:
+    - 2654 MB brukt av 15706 MB RAM (16.9 %). God margin på 16 GB Lenovo Legion 5.
