@@ -29,6 +29,16 @@ from .work_schemas import (
     ResearchSource,
     DeepResearchReport,
 )
+from .automation_schemas import (
+    AudioTranscriptionRequest,
+    AudioTranscriptionResponse,
+    AudioSpeechRequest,
+    AudioSpeechResponse,
+    AutomationCreateRequest,
+    AutomationTaskResponse,
+    ConnectorGrantRequest,
+    ConnectorGrantResponse,
+)
 
 __all__ = [
     "HealthResponse",
