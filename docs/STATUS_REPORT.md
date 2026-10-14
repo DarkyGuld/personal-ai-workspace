@@ -1,8 +1,8 @@
 # Personal AI Workspace — Korrigert Status- og Verifikasjonsrapport
 
 **Dato:** 2026-10-14  
-**Versjon:** 0.2.0 (V2 Lansering)  
-**Teststatus:** 31 av 31 automatiserte enhets-, integrasjons- og kontrakttester bestått (100 %)  
+**Versjon:** 0.2.1 (Syncthing P2P & Notes Sync)  
+**Teststatus:** 34 av 34 automatiserte enhets-, integrasjons- og kontrakttester bestått (100 %)  
 **GitHub Repository:** [DarkyGuld/personal-ai-workspace](https://github.com/DarkyGuld/personal-ai-workspace) (Branch: `main`)
 
 ---
@@ -26,7 +26,7 @@
 | **F03** | Library & Auto-Retrieval | `integration_tested` | Sentralt innholdsadressert lager (`store.py`), SHA-256 deduplisering, favoritter, fanevisning og «Bruk i chat»-knapp. **V2: Scoret flerords-søk (`/api/v1/library/search`) og automatisk dokument-retrieval inn i chat-kontekst.** | – |
 | **F04** | Knowledge / RAG | `upstream_native` | Open WebUI har innebygd hybrid-søk og embedding-støtte. | Aktiveres via Open WebUI UI / modellvalg. |
 | **F05** | Memory | `upstream_native` + adapter | Open WebUI `ENABLE_MEMORIES=true` håndterer kjernefunksjonen. Adapter for lesing/sletting implementert. | – |
-| **F06** | Notes / Writing | `upstream_native` | Open WebUI innebygde notater. | – |
+| **F06** | Notes / Writing | `integration_tested` | **Ren Markdown-notatlagring med YAML frontmatter (`notes/*.md`), offline lesing på mobil, og API-endepunkter (`/api/v1/notes`). Synkroniseres P2P med Syncthing.** | Visuell WYSIWYG rich-text editor i web. |
 | **F07** | Work / Agents | `integration_tested` | Flerstegs WorkRun-orkestrering med plan-, søk- og produksjonssteg. **Verifisert i `test_end_to_end_agent_workflow`**. | Sanntids pause/avbryt-signalering under lange kjøringer. |
 | **F08** | Projects / Workspaces | `integration_tested` | **V2: Full CRUD for prosjekter med SQLite-tabell (`projects`), dedikerte system-prompts, filtelling, `ProjectsView.tsx`-grensesnitt og automatisk prosjekt-kontekst i chat.** | Flerbruker-RBAC på tvers av prosjekter. |
 | **F09** | Files | `unit_tested` | Opplasting, lagring, nedlasting, MIME-sjekk og SHA-256 deduplisering. | Virus-skanning (ClamAV). |
@@ -47,7 +47,7 @@
 | **F24** | YouTube Summary | `integration_tested` | Direkte uthenting av reelle YouTube-undertekster via `youtube-transcript-api` uten å hallusinere bildeinnhold. | Videoer uten tilgjengelige undertekster gir en ærlig feilmelding. |
 | **F25** | Intelligent UI | `integration_tested` | OpenUI Lang generering og interaktive React-widgets (kalkulatorer, tabeller, quizer) med lokal tilstand. | – |
 | **F26** | Images & Files Editing | `integration_tested` | Generering av nye versjoner av eksisterende filer med bevart original i Library. | Grafisk visning av fil-diff. |
-| **F27** | Cross-device Sync | `integration_tested` | Felles API og responsivt UI med offline-lagring i `localStorage`. | Offline køing av meldinger som sendes automatisk ved gjenkobling. |
+| **F27** | Cross-device Sync | `integration_tested` | **Syncthing P2P-synkronisering (`compose.sync.yaml`), SyncBridge-innboks-ingestion (`/api/v1/sync/ingest`), konfliktfritt SHA-256 CAS-speil og lokal frakoblet drift.** Se `docs/LOCAL_ANDROID_AND_SYNCTHING.md`. | – |
 | **F28** | App (Android TWA / PWA) | `verified_build` | **Signert test-APK bygget og verifisert!** Bygget via Gradle 8.11.1 og Android SDK Build-Tools 35. Zipalignet og signert med APK Signature Scheme v2 og v3. Fil: `apps/android/paw-release-signed.apk` (1,001,451 bytes). Automatisert kontraktstest `test_android_apk.py` bestått. | E2E-kjøring på fysisk maskinvare krever tilkobling av fysisk telefon via USB (`adb devices`). |
 | **F29** | Updates | `integration_tested` | `manage.sh check-updates` og `upgrade` med staging-sikring og låste versjoner. Kontrakttester verifiserer feilhåndtering ved endringer i upstream API. | – |
 | **F30** | Backup & Restore | `integration_tested` | `manage.sh backup` og `manage.sh restore` med tar.gz og SHA-256 sjekksummer. **Verifisert i `test_backup_creation_and_recovery_flow` med full datagjenoppretting.** | – |
@@ -57,7 +57,7 @@
 
 ---
 
-## 3. Testevidens og Kjøringsstatus (31 av 31 tester bestått)
+## 3. Testevidens og Kjøringsstatus (34 av 34 tester bestått)
 
 1. **Android APK-verifikasjon (F28)**:
    - Fil: `apps/android/paw-release-signed.apk`

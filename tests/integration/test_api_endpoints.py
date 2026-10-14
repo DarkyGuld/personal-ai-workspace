@@ -21,7 +21,7 @@ async def client():
         yield ac
 
     if os.path.exists("./test_api_data"):
-        shutil.rmtree("./test_api_data")
+        shutil.rmtree("./test_api_data", ignore_errors=True)
 
 @pytest.mark.asyncio
 async def test_health_endpoint(client):

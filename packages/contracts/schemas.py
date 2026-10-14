@@ -208,3 +208,32 @@ class YouTubeTranscriptResponse(BaseModel):
     title: Optional[str] = None
     has_captions: bool
     transcript: List[Dict[str, Any]] # e.g. [{"text": "...", "start": 0.0, "duration": 2.5}]
+
+# --- Notes & Writing (Markdown Sync) ---
+class NoteCreate(BaseModel):
+    title: str
+    content: str
+
+class NoteResponse(BaseModel):
+    id: str
+    title: str
+    content: str
+    updated_at: int
+    filepath: Optional[str] = None
+
+class NoteListResponse(BaseModel):
+    notes: List[NoteResponse]
+    total: int
+
+# --- Syncthing P2P Synchronization ---
+class SyncStatusResponse(BaseModel):
+    sync_enabled: bool
+    sync_dir: str
+    inbox_pending_count: int
+    notes_count: int
+    ingested_total_count: int
+    protocol: str = "syncthing_p2p"
+
+class SyncIngestResponse(BaseModel):
+    ingested_count: int
+    items: List[Dict[str, Any]]

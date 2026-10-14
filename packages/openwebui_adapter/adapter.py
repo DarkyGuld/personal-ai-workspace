@@ -17,12 +17,28 @@ class OpenWebUIAdapter:
         self.client = httpx.AsyncClient(base_url=self.base_url, timeout=30.0)
         self.llm_client = httpx.AsyncClient(base_url=self.llm_url, timeout=60.0, verify=verify_arg)
 
+    def _ensure_clients(self):
+        if self.client.is_closed:
+            self.client = httpx.AsyncClient(base_url=self.base_url, timeout=30.0)
+        if self.llm_client.is_closed:
+            verify_arg = self.ca_bundle if os.path.exists(self.ca_bundle) else True
+            self.llm_client = httpx.AsyncClient(base_url=self.llm_url, timeout=60.0, verify=verify_arg)
+
     async def close(self):
-        await self.client.aclose()
-        await self.llm_client.aclose()
+        try:
+            if not self.client.is_closed:
+                await self.client.aclose()
+        except Exception:
+            pass
+        try:
+            if not self.llm_client.is_closed:
+                await self.llm_client.aclose()
+        except Exception:
+            pass
 
     async def health(self) -> Dict[str, Any]:
         """Check upstream health endpoint."""
+        self._ensure_clients()
         try:
             resp = await self.client.get("/health")
             if resp.status_code == 200:
@@ -88,6 +104,7 @@ class OpenWebUIAdapter:
         Execute chat completion either through upstream Open WebUI
         or direct OpenAI-compatible LLM provider with graceful degradation.
         """
+        self._ensure_clients()
         payload = {
             "model": model,
             "messages": messages,

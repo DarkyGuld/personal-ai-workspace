@@ -1,0 +1,37 @@
+# Personal AI Workspace — Syncthing P2P Synchronization Profile
+# Enables continuous, peer-to-peer encrypted sync between Lenovo Legion 5 and Android devices.
+# Run with: docker compose -f compose.yaml -f compose.sync.yaml up -d
+
+services:
+  syncthing:
+    image: syncthing/syncthing:1.29.2
+    container_name: paw-syncthing
+    hostname: paw-server
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - PUID=10001
+      - PGID=10001
+      - STHOMEDIR=/var/syncthing/config
+      - STGUIADDRESS=0.0.0.0:8384
+    volumes:
+      - ${PAW_DATA_DIR:-./data}/sync/config:/var/syncthing/config
+      - ${PAW_DATA_DIR:-./data}/paw/sync:/var/syncthing/Sync
+      - ${PAW_DATA_DIR:-./data}/paw/library:/var/syncthing/Sync/library:ro
+      - ${PAW_DATA_DIR:-./data}/paw/sync/inbox:/var/syncthing/Sync/inbox
+      - ${PAW_DATA_DIR:-./data}/paw/sync/notes:/var/syncthing/Sync/notes
+    ports:
+      - "${SYNCTHING_GUI_BIND:-127.0.0.1}:8384:8384" # Syncthing Web GUI (Localhost/Tailscale only)
+      - "22000:22000/tcp"                           # Sync protocol (TCP)
+      - "22000:22000/udp"                           # Sync protocol (QUIC)
+      - "21027:21027/udp"                           # Discovery broadcast (LAN)
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 8384 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    mem_limit: 512m
+    cpus: 1
+    networks:
+      - backend

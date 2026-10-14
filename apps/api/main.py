@@ -48,12 +48,18 @@ from packages.contracts import (
     DeepResearchPlanRequest,
     DeepResearchStep,
     DeepResearchPlanResponse,
+    NoteCreate,
+    NoteResponse,
+    NoteListResponse,
+    SyncStatusResponse,
+    SyncIngestResponse,
 )
 from typing import List, Optional
 from packages.openwebui_adapter.adapter import OpenWebUIAdapter
 from packages.library.store import LibraryStore
 from packages.artifact_tools.generator import ArtifactGenerator
 from packages.artifact_tools.image_engine import ImageEngine
+from packages.sync import SyncBridge
 
 from contextlib import asynccontextmanager
 from fastapi.staticfiles import StaticFiles
@@ -62,8 +68,10 @@ from fastapi.responses import FileResponse
 DATA_DIR = os.getenv("PAW_DATA_DIR", "./data/paw")
 DB_PATH = os.path.join(DATA_DIR, "sqlite", "paw_metadata.db")
 STORAGE_DIR = os.path.join(DATA_DIR, "library")
+SYNC_DIR = os.getenv("PAW_SYNC_DIR", os.path.join(DATA_DIR, "sync"))
 
 library_store = LibraryStore(db_path=DB_PATH, storage_dir=STORAGE_DIR)
+sync_bridge = SyncBridge(sync_dir=SYNC_DIR)
 owui_adapter = OpenWebUIAdapter()
 
 @asynccontextmanager
@@ -72,7 +80,10 @@ async def lifespan(app: FastAPI):
     await library_store.init_db()
     yield
     # Shutdown
-    await owui_adapter.close()
+    try:
+        await owui_adapter.close()
+    except Exception:
+        pass
 
 app = FastAPI(
     title="Personal AI Workspace API (BFF)",
@@ -686,6 +697,49 @@ async def revoke_connector(grant_id: str):
             g.status = "revoked"
             return {"grant_id": grant_id, "status": "revoked"}
     raise HTTPException(status_code=404, detail="Grant not found")
+
+# --- Notes & Writing (Synced Markdown) ---
+
+@app.get("/api/v1/notes", response_model=NoteListResponse)
+async def list_notes():
+    notes = sync_bridge.list_notes()
+    res = [NoteResponse(**n) for n in notes]
+    return NoteListResponse(notes=res, total=len(res))
+
+@app.post("/api/v1/notes", response_model=NoteResponse)
+async def create_or_update_note(req: NoteCreate, note_id: Optional[str] = Query(None)):
+    nid = note_id or str(uuid.uuid4())
+    saved = sync_bridge.save_note(note_id=nid, title=req.title, content=req.content)
+    return NoteResponse(**saved)
+
+@app.get("/api/v1/notes/{note_id}", response_model=NoteResponse)
+async def get_note(note_id: str):
+    note = sync_bridge.get_note(note_id)
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+    return NoteResponse(**note)
+
+@app.delete("/api/v1/notes/{note_id}")
+async def delete_note(note_id: str):
+    ok = sync_bridge.delete_note(note_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Note not found")
+    return {"id": note_id, "status": "deleted"}
+
+# --- Syncthing P2P Synchronization & Ingestion ---
+
+@app.get("/api/v1/sync/status", response_model=SyncStatusResponse)
+async def get_sync_status():
+    status = sync_bridge.get_sync_status()
+    return SyncStatusResponse(**status)
+
+@app.post("/api/v1/sync/ingest", response_model=SyncIngestResponse)
+async def ingest_sync_inbox():
+    ingested = await sync_bridge.scan_and_ingest_inbox(library_store)
+    return SyncIngestResponse(
+        ingested_count=len(ingested),
+        items=ingested
+    )
 
 # --- Android Digital Asset Links (TWA) ---
 @app.get("/.well-known/assetlinks.json")

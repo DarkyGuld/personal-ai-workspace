@@ -30,6 +30,11 @@ from .schemas import (
     WorkRunResponse,
     YouTubeTranscriptRequest,
     YouTubeTranscriptResponse,
+    NoteCreate,
+    NoteResponse,
+    NoteListResponse,
+    SyncStatusResponse,
+    SyncIngestResponse,
 )
 from .image_schemas import (
     ImageGenerateRequest,
@@ -99,4 +104,9 @@ __all__ = [
     "AutomationTaskResponse",
     "ConnectorGrantRequest",
     "ConnectorGrantResponse",
+    "NoteCreate",
+    "NoteResponse",
+    "NoteListResponse",
+    "SyncStatusResponse",
+    "SyncIngestResponse",
 ]
