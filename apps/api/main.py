@@ -41,12 +41,30 @@ from packages.library.store import LibraryStore
 from packages.artifact_tools.generator import ArtifactGenerator
 from packages.artifact_tools.image_engine import ImageEngine
 
+from contextlib import asynccontextmanager
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+DATA_DIR = os.getenv("PAW_DATA_DIR", "./data/paw")
+DB_PATH = os.path.join(DATA_DIR, "sqlite", "paw_metadata.db")
+STORAGE_DIR = os.path.join(DATA_DIR, "library")
+
+library_store = LibraryStore(db_path=DB_PATH, storage_dir=STORAGE_DIR)
+owui_adapter = OpenWebUIAdapter()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    await library_store.init_db()
+    yield
+    # Shutdown
+    await owui_adapter.close()
 
 app = FastAPI(
     title="Personal AI Workspace API (BFF)",
     version="0.1.0",
-    description="Unified API & BFF powering Desktop Web and Android TWA clients"
+    description="Unified API & BFF powering Desktop Web and Android TWA clients",
+    lifespan=lifespan
 )
 
 # CORS setup for local and reverse proxy access
@@ -61,22 +79,9 @@ app.add_middleware(
 # Serve web SPA if built
 WEB_DIST_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "web", "dist")
 if os.path.exists(WEB_DIST_DIR):
-    app.mount("/assets", StaticFiles(directory=os.path.join(WEB_DIST_DIR, "assets")), name="assets")
-
-DATA_DIR = os.getenv("PAW_DATA_DIR", "./data/paw")
-DB_PATH = os.path.join(DATA_DIR, "sqlite", "paw_metadata.db")
-STORAGE_DIR = os.path.join(DATA_DIR, "library")
-
-library_store = LibraryStore(db_path=DB_PATH, storage_dir=STORAGE_DIR)
-owui_adapter = OpenWebUIAdapter()
-
-@app.on_event("startup")
-async def startup_event():
-    await library_store.init_db()
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    await owui_adapter.close()
+    assets_dir = os.path.join(WEB_DIST_DIR, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
 
 # --- Health & Capabilities ---
 
@@ -493,3 +498,22 @@ async def assetlinks():
             "sha256_cert_fingerprints": [fingerprint]
         }
     }])
+
+# --- SPA Root & Static Fallback ---
+@app.get("/manifest.webmanifest")
+async def get_manifest():
+    manifest_path = os.path.join(WEB_DIST_DIR, "manifest.webmanifest")
+    if os.path.exists(manifest_path):
+        return FileResponse(manifest_path, media_type="application/manifest+json")
+    raise HTTPException(status_code=404, detail="Manifest not found")
+
+@app.get("/{full_path:path}")
+async def serve_spa(full_path: str):
+    # Only handle GET requests for SPA navigation
+    if full_path.startswith("api/") or full_path.startswith("healthz") or full_path.startswith(".well-known"):
+        raise HTTPException(status_code=404, detail="Not Found")
+    index_path = os.path.join(WEB_DIST_DIR, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return JSONResponse({"status": "Personal AI Workspace API", "docs": "/docs"})
+
