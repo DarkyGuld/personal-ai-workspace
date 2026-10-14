@@ -35,8 +35,14 @@ services:
       DO_NOT_TRACK: "true"
       ANONYMIZED_TELEMETRY: "false"
       ENABLE_VERSION_UPDATE_CHECK: "false"
-      # Web search (configure provider in .env; default off until a provider is set)
-      ENABLE_WEB_SEARCH: ${ENABLE_WEB_SEARCH:-false}
+      # Sub-agents & parallel workers
+      ENABLE_SUBAGENTS: ${ENABLE_SUBAGENTS:-true}
+      SUBAGENTS_MAX_CONCURRENT: ${SUBAGENTS_MAX_CONCURRENT:-8}
+      SUBAGENTS_MAX_ASYNC: ${SUBAGENTS_MAX_ASYNC:-8}
+      SUBAGENTS_MAX_ITERATIONS: ${SUBAGENTS_MAX_ITERATIONS:-30}
+      SUBAGENTS_MAX_OUTPUT: ${SUBAGENTS_MAX_OUTPUT:-30000}
+      # Web search (configure provider in .env; default duckduckgo or local via compose.search.yaml)
+      ENABLE_WEB_SEARCH: ${ENABLE_WEB_SEARCH:-true}
       WEB_SEARCH_ENGINE: ${WEB_SEARCH_ENGINE:-duckduckgo}
       # Image generation (external API by default; local ComfyUI only via compose.gpu.yaml)
       ENABLE_IMAGE_GENERATION: ${ENABLE_IMAGE_GENERATION:-false}

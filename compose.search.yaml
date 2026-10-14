@@ -1,0 +1,39 @@
+# Optional Local Web Search Profile (OpenSERP / SearXNG)
+# Use this when you want 100% self-hosted, local search without external API subscriptions.
+# Run with: docker compose -f compose.yaml -f compose.search.yaml up -d
+services:
+  # OpenSERP: Megasearch scraping Google, Bing, DuckDuckGo, Baidu without browser cookies
+  openserp:
+    image: ${OPENSERP_IMAGE:-karust/openserp:latest}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${OPENSERP_PORT:-7000}:7000"
+    command: ["serve", "-a", "0.0.0.0", "-p", "7000"]
+    mem_limit: 512m
+    cpus: 1.0
+    networks:
+      - backend
+
+  # SearXNG: Privacy-respecting metasearch engine
+  searxng:
+    image: ${SEARXNG_IMAGE:-docker.io/searxng/searxng:latest}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${SEARXNG_PORT:-8088}:8080"
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8088/
+      - SEARXNG_SECRET=${SEARXNG_SECRET:-paw_searxng_secret_32bytes_random_hex}
+    mem_limit: 512m
+    cpus: 1.0
+    networks:
+      - backend
+
+  # Update Open WebUI container configuration to route to the local OpenSERP / SearXNG search engines
+  open-webui:
+    environment:
+      ENABLE_WEB_SEARCH: "true"
+      WEB_SEARCH_ENGINE: "openserp"
+      OPENSERP_BASE_URL: "http://openserp:7000"
+      SEARXNG_QUERY_URL: "http://searxng:8080/search?q=<query>&format=json"
+      WEB_SEARCH_RESULT_COUNT: 5
+      WEB_SEARCH_CONCURRENT_REQUESTS: 4
