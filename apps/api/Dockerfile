@@ -1,3 +1,10 @@
+FROM node:22-alpine AS build-web
+WORKDIR /app/web
+COPY apps/web/package.json ./
+RUN npm install
+COPY apps/web ./
+RUN npm run build
+
 FROM python:3.12-slim-bookworm AS base
 
 # Security hardening: create non-root user
@@ -6,7 +13,6 @@ RUN groupadd -g 10001 paw && \
 
 WORKDIR /app
 
-# Install system dependencies for document handling and crypto
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     libmagic1 \
@@ -20,6 +26,9 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 COPY apps/api /app/apps/api
 COPY packages /app/packages
+
+# Copy compiled frontend SPA assets into static serve directory
+COPY --from=build-web /app/web/dist /app/apps/web/dist
 
 RUN mkdir -p /data/library /data/sqlite /data/artifacts && \
     chown -R paw:paw /app /data

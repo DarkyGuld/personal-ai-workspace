@@ -23,6 +23,8 @@ from packages.openwebui_adapter.adapter import OpenWebUIAdapter
 from packages.library.store import LibraryStore
 from packages.artifact_tools.generator import ArtifactGenerator
 
+from fastapi.staticfiles import StaticFiles
+
 app = FastAPI(
     title="Personal AI Workspace API (BFF)",
     version="0.1.0",
@@ -37,6 +39,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Serve web SPA if built
+WEB_DIST_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "web", "dist")
+if os.path.exists(WEB_DIST_DIR):
+    app.mount("/assets", StaticFiles(directory=os.path.join(WEB_DIST_DIR, "assets")), name="assets")
 
 DATA_DIR = os.getenv("PAW_DATA_DIR", "./data/paw")
 DB_PATH = os.path.join(DATA_DIR, "sqlite", "paw_metadata.db")
