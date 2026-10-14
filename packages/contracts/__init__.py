@@ -23,6 +23,12 @@ from .image_schemas import (
     ImageEditRequest,
     ImageOperationResponse,
 )
+from .work_schemas import (
+    WorkStep,
+    WorkApprovalRequest,
+    ResearchSource,
+    DeepResearchReport,
+)
 
 __all__ = [
     "HealthResponse",
